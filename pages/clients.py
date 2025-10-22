@@ -1042,7 +1042,9 @@ if st.session_state.aff_content == True:
             ]
             group_labels = ["Income", "Expenses"]
 
-            fig = ff.create_distplot(hist_data, group_labels, bin_size=[0.1, 0.25])
+            colors = ["#2ecc71", "#e74c3c"]  # green for Income, red for Expenses
+
+            fig = ff.create_distplot(hist_data, group_labels, bin_size=[0.1, 0.25], colors=colors)
 
             st.plotly_chart(fig)
     if "process_done" in st.session_state and st.session_state.process_done == False:
