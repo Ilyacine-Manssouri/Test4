@@ -1068,6 +1068,7 @@ if st.session_state.aff_content == True:
 
             # --- Mise en forme ---
             fig.update_layout(
+                title="Évolution mensuelle des revenus et dépenses",
                 xaxis_title="Mois",
                 yaxis_title="Montant (DH)",
                 plot_bgcolor="white",
