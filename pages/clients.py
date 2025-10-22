@@ -1038,63 +1038,19 @@ if st.session_state.aff_content == True:
                     """,
                 unsafe_allow_html=True,
             )
-            # --- DESIGN PERSONNALISÉ ---
-            plt.style.use("seaborn-v0_8-whitegrid")  # joli fond clair moderne
+            hist_data = [
+                rng(0).standard_normal(200) - 2,
+                rng(1).standard_normal(200),
+            ]
+            group_labels = ["Income", "Expenses"]
 
-            bar_width = 0.35
-            r1 = np.arange(len(months))
-            r2 = r1 + bar_width
+            colors = ["#2ecc71", "#e74c3c"]  # green for Income, red for Expenses
 
-            fig, ax = plt.subplots(figsize=(10, 6))
-
-            # Couleurs harmonieuses
-            income_color = "#4CAF50"  # vert doux
-            expense_color = "#FFB74D"  # orange clair
-
-            # Barres arrondies
-            ax.bar(
-                r1,
-                monthly_data["Income"],
-                width=bar_width,
-                color=income_color,
-                label="Revenus",
-                edgecolor="white",
-                linewidth=1,
-            )
-            ax.bar(
-                r2,
-                monthly_data["Expenses"],
-                width=bar_width,
-                color=expense_color,
-                label="Dépenses",
-                edgecolor="white",
-                linewidth=1,
+            fig = ff.create_distplot(
+                hist_data, group_labels, bin_size=[0.1, 0.5], colors=colors
             )
 
-            # Étiquettes et légendes
-            ax.set_xticks(r1 + bar_width / 2)
-            ax.set_xticklabels(months, fontsize=11, fontweight="bold")
-            ax.set_xlabel("Mois", fontsize=12, labelpad=10)
-            ax.set_ylabel("Montant (DH)", fontsize=12, labelpad=10)
-            # 🔽 Légende en bas
-            ax.legend(
-                loc="upper center",  # position horizontale au centre
-                bbox_to_anchor=(
-                    0.5,
-                    -0.15,
-                ),  # décale vers le bas (valeur négative = sous le graphe)
-                ncol=2,  # affiche la légende sur deux colonnes
-                frameon=False,  # pas de cadre autour
-                fontsize=10,
-            )
-
-            # Supprimer les bordures inutiles
-            for spine in ["top", "right"]:
-                ax.spines[spine].set_visible(False)
-
-            # Espacement et affichage
-            plt.tight_layout()
-            st.pyplot(fig)
+            st.plotly_chart(fig)
     if "process_done" in st.session_state and st.session_state.process_done == False:
         # 1️⃣ Récupérer les données du client sélectionné
         client_data = df.iloc[[client_index]]  # on garde la forme DataFrame
