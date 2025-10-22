@@ -660,6 +660,8 @@ def change_client():
     if user_input and user_input.strip() != "":
         try:
             client_index = int(user_input)
+            if client_index == st.session_state.client_index :
+                return
             st.session_state.client_index = client_index
             st.session_state.process_done = False
         except ValueError:
