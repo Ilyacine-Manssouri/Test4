@@ -1,0 +1,102 @@
+.st-key-appliquer button {
+    background-color: blue;
+    border-color: blue;
+}
+.st-key-analyser button {
+    background-color: blue;
+    border-color: blue;
+}
+.st-key-appliquer button p {
+    color: white;
+}
+.st-key-analyser button p {
+    color: white;
+}
+.st-key-analyser button:hover{
+    background-color: rgb(0, 136, 255);
+    border: none;
+}
+.st-key-appliquer button:hover{
+    background-color: rgb(0, 136, 255);
+    border: none; 
+}
+.st-key-appliquer button:focus{
+    background-color: rgb(0, 136, 255);
+    border: none; 
+}
+.st-key-analyser button:focus{
+    background-color: rgb(0, 136, 255);
+    border: none; 
+}
+[class^="st-key-btn_a"] button p,
+[class*=" st-key-btn_a"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_b"] button p,
+[class*=" st-key-btn_b"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_c"] button p,
+[class*=" st-key-btn_c"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_d"] button p,
+[class*=" st-key-btn_d"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_g"] button p,
+[class*=" st-key-btn_g"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_e"] button p,
+[class*=" st-key-btn_e"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_x"] button p,
+[class*=" st-key-btn_x"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_y"] button p,
+[class*=" st-key-btn_y"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_m"] button p,
+[class*=" st-key-btn_m"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_n"] button p,
+[class*=" st-key-btn_n"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_f"] button p,
+[class*=" st-key-btn_f"] button p {
+    font-size: 11px !important;
+}
+[class^="st-key-btn_k"] button p,
+[class*=" st-key-btn_k"] button p {
+    font-size: 11px !important;
+}
+.st-key-btn_6 button {
+    background-color: blue;
+    border-color: blue;
+    margin-top: 27px;
+}
+.st-key-btn_6 button p {
+    color: white;
+}
+.st-key-btn_6 button:hover {
+    background-color: rgb(0, 136, 255);
+    border: none;
+}
+.st-key-btn_voir_p button {
+    background-color: blue;
+    border-color: blue;
+}
+.st-key-btn_voir_p button:hover {
+    background-color: rgb(0, 136, 255);
+    border: none;
+}
+.st-key-btn_voir_p button p {
+    color: white;
+}
+
