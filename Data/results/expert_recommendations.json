@@ -3,6 +3,24 @@
     "product": "Produit - Compte chèque en devises"
   },
   {
-    "product": "Produit - Compte à terme"
+    "product": "Produit - Crédit Immo avec garantie hypothécaire"
+  },
+  {
+    "product": "Produit - Crédit Immo avec remboursement in fine"
+  },
+  {
+    "product": "Produit - Assurance décès toutes causes"
+  },
+  {
+    "product": "Produit - Multirisques bâtiment"
+  },
+  {
+    "product": "Produit - Maladie complémentaire"
+  },
+  {
+    "product": "Produit - OPCVM diversifiés"
+  },
+  {
+    "product": "Produit - OPCVM actions"
   }
 ]
