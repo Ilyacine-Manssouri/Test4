@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.figure_factory as ff
+import plotly.graph_objects as go  # pour créer le graphique mensuel
 from numpy.random import default_rng as rng
 import numpy as np
 import subprocess
@@ -1038,19 +1039,46 @@ if st.session_state.aff_content == True:
                     """,
                 unsafe_allow_html=True,
             )
-            hist_data = [
-                rng(0).standard_normal(200) - 2,
-                rng(1).standard_normal(200),
-            ]
-            group_labels = ["Income", "Expenses"]
+            # --- Créer le graphique ---
+            fig = go.Figure()
 
-            colors = ["#2ecc71", "#e74c3c"]  # green for Income, red for Expenses
-
-            fig = ff.create_distplot(
-                hist_data, group_labels, bin_size=[0.1, 0.25], colors=colors
+            # Revenus
+            fig.add_trace(
+                go.Scatter(
+                    x=months,
+                    y=monthly_income,
+                    mode="lines+markers",
+                    name="Revenus",
+                    line=dict(color="#2ecc71", width=3),
+                    marker=dict(size=8),
+                )
             )
 
-            st.plotly_chart(fig)
+            # Dépenses
+            fig.add_trace(
+                go.Scatter(
+                    x=months,
+                    y=monthly_expenses,
+                    mode="lines+markers",
+                    name="Dépenses",
+                    line=dict(color="#e74c3c", width=3),
+                    marker=dict(size=8),
+                )
+            )
+
+            # --- Mise en forme ---
+            fig.update_layout(
+                title="Évolution mensuelle des revenus et dépenses",
+                xaxis_title="Mois",
+                yaxis_title="Montant (DH)",
+                plot_bgcolor="white",
+                font=dict(size=14),
+                legend=dict(title="Catégories"),
+                hovermode="x unified",
+            )
+
+            # --- Affichage Streamlit ---
+            st.plotly_chart(fig, use_container_width=True)
     if "process_done" in st.session_state and st.session_state.process_done == False:
         # 1️⃣ Récupérer les données du client sélectionné
         client_data = df.iloc[[client_index]]  # on garde la forme DataFrame
