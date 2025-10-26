@@ -199,6 +199,11 @@ with col22:
         "Anglais" if st.session_state.english != True else "French",
         key="btn_en",
         on_click=switch_lang_en,
+        help=(
+            "Cliquer ici pour changer la langue en anglais"
+            if st.session_state.english != True
+            else "Click here to change the language to French"
+        ),
     )
 # --- UPLOADER DE FICHIER ---
 uploaded_file = st.file_uploader(
