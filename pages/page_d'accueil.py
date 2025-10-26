@@ -16,6 +16,18 @@ st.set_page_config(
 # --- CONSTANTES ---
 OUTPUT_DIR = "Data/Data_base"
 CSS_PATH = pathlib.Path("assets/styles.css")
+languages = {
+    "EN": {
+        "button": "Browse Files",
+        "instructions": "Drag and drop files here",
+        "limits": "Limit 200MB per file",
+    },
+    "Fr": {
+        "button": "Rechercher",
+        "instructions": "Glissez les fichiers ici",
+        "limits": "Limite de 200 Mo par fichier",
+    },
+}
 
 
 # --- FONCTIONS UTILITAIRES ---
@@ -204,8 +216,56 @@ with col22:
             if st.session_state.english != True
             else "Click here to change the language to French"
         ),
+        width="stretch",
     )
 # --- UPLOADER DE FICHIER ---
+if not st.session_state.english:
+    custom_css = """
+    <style>
+
+    /* 2) Replace the "Drag and drop file here" visible text */
+    div[data-testid="stFileUploader"] div[data-testid="stFileUploaderDropzoneInstructions"] .st-emotion-cache-kt79cc > span:first-child {
+        visibility: hidden !important;
+    }
+    div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] {
+        margin-top: -16px !important; /* tweak this value */
+    }
+    div[data-testid="stFileUploader"] div[data-testid="stFileUploaderDropzoneInstructions"] .st-emotion-cache-kt79cc > span:first-child::after {
+        content: "Glissez le fichier ici";
+        visibility: visible !important;
+        font-size: 1rem;
+        display: flex;
+        justify-content: flex-start;
+        margin-top: -25px;
+    }
+    /* Texte de limite : "Limit 200MB per file..." */
+    div[data-testid="stFileUploaderDropzoneInstructions"] > div > span:last-child {
+        visibility: hidden !important;
+    }
+    div[data-testid="stFileUploader"] div[data-testid="stFileUploaderDropzoneInstructions"] .st-emotion-cache-kt79cc > span:nth-child(2)::after {
+        content: "Limite de 200 Mo par fichier • CSV, JSON, XLSX, XLS";
+        visibility: visible !important;
+        display: flex;
+        justify-content: flex-start;
+        font-size: 0.85rem;
+        margin-top: -22px;
+    }
+    /* 4) Replace the "Browse files" button text
+    Hide the original text, then place our own via ::after on the button. */
+    div[data-testid="stFileUploader"] span[class*="epvm6"] button[data-testid="stBaseButton-secondary"] {
+        color: transparent !important;        /* hide original text */
+        position: relative !important;
+    }
+    div[data-testid="stFileUploader"] span[class*="epvm6"] button[data-testid="stBaseButton-secondary"]::after {
+        content: "Parcourir";
+        position: absolute;
+        color: black;
+        font-weight: 400;
+    }
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
 uploaded_file = st.file_uploader(
     (
         "Glissez-déposez le fichier ici :"
