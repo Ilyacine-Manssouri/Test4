@@ -2172,7 +2172,7 @@ if st.session_state.aff_content == True:
                                             width="stretch",
                                         )
                                     if cat[i] == R:
-                                        img = "images/retraite & prévoyance"
+                                        img = "images/retraite et prévoyance"
                                         st.image(
                                             f"{img}.png",
                                             width="stretch",
