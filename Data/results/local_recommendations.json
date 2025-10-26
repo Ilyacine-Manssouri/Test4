@@ -1,6 +1,14 @@
 [
   {
-    "product": "Produit - Carte Visa",
-    "percentage": 48.0
+    "product": "Produit - Crédit à la consommation non affecté",
+    "percentage": 30.4
+  },
+  {
+    "product": "Produit - Crédit Auto",
+    "percentage": 38.3
+  },
+  {
+    "product": "Produit - Assurance décès invalidité adossée à un financement",
+    "percentage": 77.5
   }
 ]

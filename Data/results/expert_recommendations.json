@@ -1,12 +1,18 @@
 [
   {
-    "product": "Produit - Compte chèque en devises"
+    "product": "Produit - Carte Visa Infinite"
   },
   {
     "product": "Produit - Crédit Immo avec garantie hypothécaire"
   },
   {
-    "product": "Produit - Crédit Immo avec remboursement in fine"
+    "product": "Produit - Crédit Auto"
+  },
+  {
+    "product": "Produit - Découvert"
+  },
+  {
+    "product": "Produit - Assurance décès invalidité adossée à un financement"
   },
   {
     "product": "Produit - Assurance décès toutes causes"
@@ -15,12 +21,36 @@
     "product": "Produit - Multirisques bâtiment"
   },
   {
+    "product": "Produit - Retraite complémentaire"
+  },
+  {
+    "product": "Produit - Retraite complémentaire en UC"
+  },
+  {
     "product": "Produit - Maladie complémentaire"
+  },
+  {
+    "product": "Produit - Épargne Éducation"
+  },
+  {
+    "product": "Produit - Épargne Logement"
+  },
+  {
+    "product": "Produit - OPCVM monétaires"
+  },
+  {
+    "product": "Produit - OPCVM obligataires"
   },
   {
     "product": "Produit - OPCVM diversifiés"
   },
   {
     "product": "Produit - OPCVM actions"
+  },
+  {
+    "product": "Produit - Pack bancaire basique"
+  },
+  {
+    "product": "Produit - Pack bancaire étoffé"
   }
 ]

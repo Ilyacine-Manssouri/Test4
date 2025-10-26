@@ -1,31 +1,46 @@
 import streamlit as st
 import pathlib
 
+if (
+    "produit_page" not in st.session_state
+    or "aff_content" not in st.session_state
+    or "Advantage" not in st.session_state
+    or "Advantage_list" not in st.session_state
+    or "cout_list" not in st.session_state
+    or "english" not in st.session_state
+):
+    st.switch_page("pages/page_d'accueil.py")
+
+
+def t(fr, en):
+    """Renvoie fr ou en selon la langue choisie"""
+    return en if st.session_state.english else fr
+
+
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(
-    page_title="Produit",
+    page_title=t("Produit", "Product"),
     layout="wide",
     page_icon="images/NEURONAIZE-ICONE-BLANC.png",
 )
-if (
-    "produit_page" not in st.session_state
-    and "aff_content" not in st.session_state
-    and "Advantage" not in st.session_state
-    and "Advantage_list" not in st.session_state
-    and "cout_list" not in st.session_state
-):
-    st.switch_page("pages/page_d'accueil.py")
+
 # --- CONSTANTES ---
 st.session_state.produit_page = False
 CSS_PATH = pathlib.Path("assets/styles.css")
 name_of_product = st.session_state.produit
-results = "revenu mensuel stable, croissance financière à long terme"
+results = t(
+    "revenu mensuel stable, croissance financière à long terme",
+    "stable monthly income, long-term financial growth",
+)
 advantages = st.session_state.Advantage
 num_TAE = 5.2
 num_Investissement = 100000
-niv_risque = "Low"
-frais = "Low/None"
-ai_msg = "Bonjour 👋 Je suis votre assistant. Comment puis-je vous aider aujourd'hui ?"
+niv_risque = t("faible", "Low")
+frais = t("Faible/Aucun", "Low/None")
+ai_msg = t(
+    "Bonjour 👋 Je suis votre assistant. Comment puis-je vous aider aujourd'hui ?",
+    "Hello 👋 I’m your assistant. How can I help you today?",
+)
 Advantage_list = st.session_state.Advantage_list
 cout_list = st.session_state.cout_list
 
@@ -37,7 +52,11 @@ def load_css(file_path: pathlib.Path):
         with open(file_path) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     else:
-        st.warning(f"⚠️ Fichier CSS non trouvé : {file_path}")
+        st.warning(
+            f"⚠️ Fichier CSS non trouvé : {file_path}"
+            if st.session_state.english != True
+            else f"⚠️ CSS file not found: {file_path}"
+        )
 
 
 def my_text():
@@ -62,6 +81,14 @@ def toggle_Frais_and_coûts():
     st.session_state.show_Frais_and_coûts = not st.session_state.show_Frais_and_coûts
 
 
+def switch_page_home():
+    st.session_state["switch_page_home"] = True
+
+
+def switch_page_client():
+    st.session_state.switch_page_client = True
+
+
 # --- INITIALISATION DES VARIABLES DE SESSION ---
 st.session_state.switch_page_produit = False
 if "m_messages" not in st.session_state:
@@ -72,6 +99,11 @@ if "show_Avantages" not in st.session_state:
     st.session_state.show_Avantages = True  # Par défaut, masqué
 if "show_Frais_and_coûts" not in st.session_state:
     st.session_state.show_Frais_and_coûts = True  # Par défaut, masqué
+if st.session_state["switch_page_home"] == True:
+    st.switch_page("pages/page_d'accueil.py")
+if st.session_state["switch_page_client"] == True:
+    st.switch_page("pages/clients.py")
+
 
 # --- NAVIGATION AUTOMATIQUE SI DÉCLENCHÉE ---
 
@@ -109,35 +141,37 @@ with st.sidebar:
     )
     st.image("images/NEURONAIZE-LOGO-BASELINE.png", width="stretch")
     st.button(
-        "Accueil",
+        t("Accueil", "Home"),
         width="stretch",
         icon=":material/home:",
         type="tertiary",
         key="btn1",
+        on_click=switch_page_home,
     )
     st.button(
-        "Comptes",
+        t("Comptes", "Accounts"),
         width="stretch",
         icon=":material/manage_accounts:",
         type="tertiary",
         key="btn2",
     )
     st.button(
-        "Paiements",
+        t("Paiements", "Payments"),
         width="stretch",
         icon=":material/payments:",
         type="tertiary",
         key="btn3",
     )
     st.button(
-        "Aperçu/Analyse",
+        t("Aperçu / Analyse", "Overview / Analysis"),
         width="stretch",
         icon=":material/area_chart:",
         type="tertiary",
         key="btn4",
+        on_click=switch_page_client,
     )
     st.button(
-        "Produits",
+        t("Produits", "Products"),
         width="stretch",
         icon=":material/credit_card:",
         type="tertiary",
@@ -165,25 +199,30 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     st.write(
-        "Investissez en toute confiance avec des rendements compétitifs et des avantages précieux."
+        t(
+            "Investissez en toute confiance avec des rendements compétitifs et des avantages précieux.",
+            "Invest with confidence, enjoying competitive returns and valuable benefits.",
+        )
     )
     col14, col24 = st.columns([1, 1])
     with col14:
+        text_part3 = t("Points clés :", "Key points :")
         st.markdown(
             f"""
                     <p style='font-family:Arial; font-size:14px; font-weight:bold; margin-left: 50px;'>
-                        Points clés :
+                        {text_part3}
                     </p>
                     """,
             unsafe_allow_html=True,
         )
         col11, col22 = st.columns([1, 1])
         with col11:
+            text_part4 = t("TAE estimé (%)", "Estimated APR (%)")
             with st.container(border=True, height="stretch"):
                 st.markdown(
                     f"""
                     <p style='font-family:Arial; font-size:12px;'>
-                        TAE estimé (%)
+                        {text_part4}
                     </p>
                     """,
                     unsafe_allow_html=True,
@@ -197,10 +236,11 @@ with st.container(border=True):
                     unsafe_allow_html=True,
                 )
             with st.container(border=True, height="stretch"):
+                text_part12 = t("Investissement minimum (DH)","Minimum investment (MAD)")
                 st.markdown(
                     f"""
                     <p style='font-family:Arial; font-size:12px;'>
-                        Investissement minimum (DH)
+                        {text_part12}
                     </p>
                     """,
                     unsafe_allow_html=True,
@@ -215,10 +255,11 @@ with st.container(border=True):
                 )
         with col22:
             with st.container(border=True, height="stretch"):
+                text_part5 = t("Niveau de risque", "Risk level")
                 st.markdown(
                     f"""
                     <p style='font-family:Arial; font-size:12px;'>
-                        Niveau de risque
+                        {text_part5}
                     </p>
                     """,
                     unsafe_allow_html=True,
@@ -232,10 +273,11 @@ with st.container(border=True):
                     unsafe_allow_html=True,
                 )
             with st.container(border=True, height="stretch"):
+                text_part6 = t("Frais", "Fees")
                 st.markdown(
                     f"""
                     <p style='font-family:Arial; font-size:12px;'>
-                        Frais
+                        {text_part6}
                     </p>
                     """,
                     unsafe_allow_html=True,
@@ -249,10 +291,17 @@ with st.container(border=True):
                     unsafe_allow_html=True,
                 )
     with col24:
+        text_part7 = t(
+            "Pourquoi ce produit est fait pour vous :",
+            "Why this product is right for you :",
+        )
+        text_part13 = t("En se basant sur votre profil affichant :","Based on your profile showing :")
+        text_part14 = t("est une excellente recommandation. Il correspond à vos objectifs en offrant :","is an excellent recommendation. It aligns with your goals by offering :")
+        text_part15 = t("tout en vous offrant la flexibilité dont vous avez besoin.","while providing you with the flexibility you need.")
         st.markdown(
             f"""
                     <p style='font-family:Arial; font-size:14px; font-weight:bold;'>
-                        Pourquoi ce produit est fait pour vous :
+                        {text_part7}
                     </p>
                     """,
             unsafe_allow_html=True,
@@ -260,17 +309,17 @@ with st.container(border=True):
         st.markdown(
             f"""
             <p style='font-family:Arial; font-size:14px; text-align: justify;'>
-                En se basant sur votre profil affichant :
+                {text_part13}
                 <span style='color:blue; font-weight:bold;'>{results}</span>, 
                 <span style='color:blue; font-weight:bold;'>{name_of_product}</span> 
-                est une excellente recommandation. Il correspond à vos objectifs en offrant : 
+                {text_part14}
                 <span style='color:blue; font-weight:bold;'>{advantages}</span>, 
-                tout en vous offrant la flexibilité dont vous avez besoin.
+                {text_part15}
             </p>
             """,
             unsafe_allow_html=True,
         )
-        st.button("Voir votre profil complet", type="secondary", key="btn_voir_p")
+        st.button(t("Voir votre profil complet","View your full profile"), type="secondary", key="btn_voir_p")
     st.markdown(
         """
             <hr style="margin-top:5px; margin-bottom:5px;">
@@ -278,7 +327,7 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     st.button(
-        "Avantages",
+        t("Avantages","Benefits"),
         icon=":material/workspace_premium:",
         type="tertiary",
         on_click=toggle_Avantages,
@@ -317,20 +366,20 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     st.button(
-        "Frais & coûts",
+        t("Frais & coûts","Fees & Costs"),
         icon=":material/point_of_sale:",
         type="tertiary",
         on_click=toggle_Frais_and_coûts,
     )
     if st.session_state.show_Frais_and_coûts:
         i = 0
-        for ite in cout_list:
+        for ite, valeur in cout_list.items():
             if i % 2 == 0:
                 cols = st.columns([1, 1])  # crée deux colonnes
                 col_dict = {f"col{i}": cols[0], f"col{i+1}": cols[1]}
             with col_dict[f"col{i}"]:
-                if cout_list[ite]:
-                    text_part1 = cout_list[ite]
+                if valeur and valeur.strip() != "":
+                    text_part1 = valeur
                     text_part2 = ""
                 else:
                     text_part1 = "Lorem Ipsum is simply dummy text of the printing and"
@@ -362,7 +411,7 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     Éligibilité = st.button(
-        "Éligibilité",
+        t("Éligibilité","Eligibility"),
         icon=":material/contract:",
         type="tertiary",
         on_click=toggle_eligibilite,
@@ -371,6 +420,9 @@ with st.container(border=True):
         with st.container():
             col13, col23 = st.columns([1, 1])
             with col13:
+                text_part8 = t("Citoyen marocain","Moroccan citizen")
+                text_part9 = t("Compte bancaire valide","Valid bank account")
+                text_part10 = t("Âge 18 +","Age 18 +")
                 st.markdown(
                     f"""
                         <p style='font-family:Arial; font-size:12px;margin-left:50px;font-weight:bold;'>
@@ -382,7 +434,7 @@ with st.container(border=True):
                 margin-right:8px;
                 vertical-align:middle;
             "></span>
-                            Citoyen marocain
+                            {text_part8}
                         </p>
                         """,
                     unsafe_allow_html=True,
@@ -398,7 +450,7 @@ with st.container(border=True):
                 margin-right:8px;
                 vertical-align:middle;
             "></span>
-                            Compte bancaire valide
+                            {text_part9}
                         </p>
                         """,
                     unsafe_allow_html=True,
@@ -415,22 +467,23 @@ with st.container(border=True):
                 margin-right:8px;
                 vertical-align:middle;
             "></span>
-                            Age 18 +
+                            {text_part10}
                         </p>
                         """,
                     unsafe_allow_html=True,
                 )
 
 with st.container(border=True):
+    text_part11 = t("Assistant de chat","Chat assistant")
     st.markdown(
         f"""
                     <p style='font-family:Arial; font-size:24px; font-weight:bold;'>
-                        Assistant de chat
+                        {text_part11}
                     </p>
                     """,
         unsafe_allow_html=True,
     )
-    st.write("Votre guide pour souscrire à ce produit")
+    st.write(t("Votre guide pour souscrire à ce produit","Your guide to subscribing to this product"))
     ai_message = st.container(border=True)
     with ai_message:
         #            st.markdown(
@@ -470,7 +523,7 @@ with st.container(border=True):
                     )
     with st.container(border=True):
         st.chat_input(
-            "Entrez votre message...",
+            t("Entrez votre message...","Enter your message..."),
             accept_file=True,
             file_type=["jpg", "jpeg", "png"],
             key="chat_input",

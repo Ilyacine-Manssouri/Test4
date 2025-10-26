@@ -3,9 +3,12 @@ import pandas as pd
 import pathlib
 import os
 
+# --- LANGUE PAR DÉFAUT ---
+st.session_state.setdefault("english", False)
+
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(
-    page_title="Page d'accueil",
+    page_title="Page d'accueil" if st.session_state.english != True else "Home page",
     layout="wide",
     page_icon="images/NEURONAIZE-ICONE-BLANC.png",
 )
@@ -22,7 +25,12 @@ def load_css(file_path: pathlib.Path):
         with open(file_path) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     else:
-        st.warning(f"⚠️ Fichier CSS non trouvé : {file_path}")
+        st.warning(
+            f"⚠️ Fichier CSS non trouvé : {file_path}"
+            if st.session_state.english != True
+            else f"⚠️ CSS file not found: {file_path}"
+        )
+
 
 @st.cache_data
 def save_uploaded_file(uploaded_file):
@@ -32,6 +40,7 @@ def save_uploaded_file(uploaded_file):
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
     return save_path
+
 
 @st.cache_data
 def read_uploaded_file(file):
@@ -51,10 +60,18 @@ def read_uploaded_file(file):
                 return pd.read_excel(file)
             elif file.name.endswith(".json"):
                 return pd.read_json(file)
-        st.error("Format non supporté.")
+        st.error(
+            "Format non supporté."
+            if st.session_state.english != True
+            else "Unsupported format."
+        )
         return None
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier : {e}")
+        st.error(
+            f"Erreur lors du chargement du fichier : {e}"
+            if st.session_state.english != True
+            else f"Error while loading file: {e}"
+        )
         return None
 
 
@@ -62,38 +79,67 @@ def go_to_clients():
     """Navigue vers la page clients après vérification de l'entrée utilisateur."""
     user_input = st.session_state.user_input.strip()
     if not user_input:
-        st.error("⚠️ Le champ ne doit pas être vide.")
+        st.error(
+            "⚠️ Le champ ne doit pas être vide."
+            if st.session_state.english != True
+            else "⚠️ The field cannot be empty."
+        )
         return
-
     try:
-        st.session_state.client_index = int(user_input)
-        st.switch_page("pages/clients.py")
+        if st.session_state.client_index != int(user_input):
+            st.session_state.client_index = int(user_input)
+            st.session_state["switch_page_home"] = False
+            st.session_state.aff_content = False
+            st.session_state.switch_page_client = True
+        else:
+            st.session_state["switch_page_home"] = False
+            st.session_state.switch_page_client = True
     except ValueError:
-        st.error("❌ Veuillez saisir un nombre entier valide pour le numéro du client.")
+        st.error(
+            "❌ Veuillez saisir un nombre entier valide pour le numéro du client."
+            if st.session_state.english != True
+            else "❌ Please enter a valid integer for the client number."
+        )
 
 
 def switch_page():
     """Déclenché automatiquement lors d’un changement de champ texte."""
     user_input = st.session_state.user_input.strip()
     if not user_input:
-        st.session_state.error_msg = "⚠️ Le champ ne doit pas être vide."
+        st.session_state.error_msg = (
+            "⚠️ Le champ ne doit pas être vide."
+            if st.session_state.english != True
+            else "⚠️ The field cannot be empty."
+        )
         return
-
     try:
-        st.session_state.client_index = int(user_input)
-        st.session_state.switch_page_client = True
+        if st.session_state.client_index != int(user_input):
+            st.session_state.client_index = int(user_input)
+            st.session_state.aff_content = False
+            st.session_state.process_done = False
+            st.session_state.switch_page_client = True
+        else:
+            st.session_state.switch_page_client = True
     except ValueError:
         st.session_state.error_msg = (
             "❌ Veuillez saisir un nombre entier valide pour le numéro du client."
+            if st.session_state.english != True
+            else "❌ Please enter a valid integer for the client number."
         )
 
 
+def switch_lang_en():
+    st.session_state.english = not st.session_state.english
+
+
 # --- INITIALISATION DES VARIABLES DE SESSION ---
+st.session_state["switch_page_home"] = False
 st.session_state.setdefault("user_input", "")
 st.session_state.setdefault("client_index", "")
 st.session_state.setdefault("data_frame", None)
 st.session_state.setdefault("switch_page_client", False)
 st.session_state.setdefault("last_uploaded_file", "")
+st.session_state.setdefault("process_done", None)
 st.session_state.m_messages = []
 
 
@@ -101,77 +147,132 @@ st.session_state.m_messages = []
 if st.session_state.switch_page_client:
     st.switch_page("pages/clients.py")
 
+
 # --- CHARGEMENT DU STYLE ---
 load_css(CSS_PATH)
 
+
 # --- SIDEBAR ---
-st.sidebar.image("images/NEURONAIZE-LOGO-BASELINE.png", width="stretch")
-st.sidebar.markdown(
-    "### ⓘ&nbsp;&nbsp;&nbsp;&nbsp;À propos de nous :", unsafe_allow_html=True
+text3 = (
+    "### ⓘ&nbsp;&nbsp;&nbsp;&nbsp;À propos de nous :"
+    if st.session_state.english != True
+    else "### ⓘ&nbsp;&nbsp;&nbsp;&nbsp;About us:"
 )
+st.sidebar.image("images/NEURONAIZE-LOGO-BASELINE.png", width="stretch")
+st.sidebar.markdown(text3, unsafe_allow_html=True)
+
+text1 = (
+    "Chez NeuronAIze, nous croyons au pouvoir de l’intelligence artificielle pour transformer la donnée brute en connaissance utile et exploitable."
+    if st.session_state.english != True
+    else "At NeuronAIze, we believe in the power of artificial intelligence to transform raw data into useful and actionable knowledge."
+)
+text2 = (
+    "Notre mission est de rendre les outils d’IA et d’analyse avancée accessibles aux entreprises et aux organisations, afin de leur permettre de prendre de meilleures décisions, plus rapidement et en toute confiance."
+    if st.session_state.english != True
+    else "Our mission is to make AI and advanced analytics tools accessible to businesses and organizations, empowering them to make better decisions — faster and with confidence."
+)
+
 st.sidebar.markdown(
-    """
+    f"""
     <p style="text-align: justify;">
-    Chez NeuronAIze, nous croyons au pouvoir de l’intelligence artificielle pour transformer la donnée brute en connaissance utile et exploitable.
+    {text1}
     </p>
     <p style="text-align: justify;">
-    Notre mission est de rendre les outils d’IA et d’analyse avancée accessibles aux entreprises et aux organisations, afin de leur permettre de prendre de meilleures décisions, plus rapidement et en toute confiance.
+    {text2}
     </p>
     """,
     unsafe_allow_html=True,
 )
 
-# --- CONTENU PRINCIPAL ---
-st.title("📂 Bienvenue !")
-st.write("Veuillez télécharger un fichier (CSV, JSON ou Excel).")
 
+# --- CONTENU PRINCIPAL ---
+col11, col22 = st.columns([10, 1])
+with col11:
+    st.title("📂 Bienvenue !" if st.session_state.english != True else "📂 Welcome!")
+    st.write(
+        "Veuillez télécharger un fichier (CSV, JSON ou Excel)."
+        if st.session_state.english != True
+        else "Please upload a file (CSV, JSON, or Excel)."
+    )
+with col22:
+    st.button(
+        "Anglais" if st.session_state.english != True else "French",
+        key="btn_en",
+        on_click=switch_lang_en,
+    )
 # --- UPLOADER DE FICHIER ---
 uploaded_file = st.file_uploader(
-    "Glissez-déposez le fichier ici :",
+    (
+        "Glissez-déposez le fichier ici :"
+        if st.session_state.english != True
+        else "Drag and drop your file here:"
+    ),
     type=["csv", "json", "xlsx", "xls"],
-    help="Formats supportés : CSV, JSON, Excel (.xlsx, .xls).",
+    help=(
+        "Formats supportés : CSV, JSON, Excel (.xlsx, .xls)."
+        if st.session_state.english != True
+        else "Supported formats: CSV, JSON, Excel (.xlsx, .xls)."
+    ),
 )
+
 
 # --- TRAITEMENT DU FICHIER (AVEC MÉMOIRE) ---
 if uploaded_file:
-    # Si nouveau fichier différent du précédent, on recharge
     if uploaded_file.name != st.session_state.last_uploaded_file:
         save_uploaded_file(uploaded_file)
         df = read_uploaded_file(uploaded_file)
         if df is not None:
             st.session_state.data_frame = df
             st.session_state.last_uploaded_file = uploaded_file.name
-            st.success(f"✅ Nouveau fichier chargé : {uploaded_file.name}")
+            st.success(
+                f"✅ Nouveau fichier chargé : {uploaded_file.name}"
+                if st.session_state.english != True
+                else f"✅ New file loaded: {uploaded_file.name}"
+            )
     else:
-        st.success(f"✅ Fichier déjà chargé : {uploaded_file.name}")
+        st.success(
+            f"✅ Fichier déjà chargé : {uploaded_file.name}"
+            if st.session_state.english != True
+            else f"✅ File already loaded: {uploaded_file.name}"
+        )
 
 if st.session_state.data_frame is None:
     st.info(
         "💡 Aucun fichier chargé. Veuillez en importer un ci-dessus pour commencer."
+        if st.session_state.english != True
+        else "💡 No file loaded. Please upload one above to get started."
     )
+
 
 # --- AFFICHAGE DU DATAFRAME SI DÉJÀ CHARGÉ ---
 if st.session_state.data_frame is not None:
     df = st.session_state.data_frame
-    st.write("Aperçu des données :")
+    st.write(
+        "Aperçu des données :" if st.session_state.english != True else "Data preview:"
+    )
     st.dataframe(df.head())
 
-    # --- SAISIE DU NUMÉRO DE CLIENT ---
     error_placeholder = st.empty()
     st.text_input(
-        "Numéro de client :",
-        placeholder="Saisissez le numéro du client pour afficher sa fiche détaillée.",
+        "Numéro de client :" if st.session_state.english != True else "Client number:",
+        placeholder=(
+            "Saisissez le numéro du client pour afficher sa fiche détaillée."
+            if st.session_state.english != True
+            else "Enter the client number to display their detailed profile."
+        ),
         key="user_input",
         on_change=switch_page,
     )
 
-    # --- BOUTON D’APPLICATION ---
     col1, col2, col3 = st.columns([5, 1, 2])
     with col3:
-        if st.button("Appliquer", use_container_width=True, key="appliquer"):
+        if st.button(
+            "Appliquer" if st.session_state.english != True else "Apply",
+            use_container_width=True,
+            key="appliquer",
+        ):
             go_to_clients()
 
-    # --- MESSAGE D’ERREUR SI NÉCESSAIRE ---
     if "error_msg" in st.session_state and st.session_state.error_msg:
         error_placeholder.error(st.session_state.error_msg)
         st.session_state.error_msg = ""  # reset après affichage

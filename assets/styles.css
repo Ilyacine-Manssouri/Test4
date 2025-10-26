@@ -100,3 +100,32 @@
     color: white;
 }
 
+.st-key-btn_fr button {
+    margin-top: 35px;
+    border: 1px solid black; /* ✅ bien définir l'épaisseur et le style */
+    border-radius: 8px; /* optionnel : arrondir les coins */
+    /*width: 50px;*/
+}
+.st-key-btn_fr button p {
+    color: black;
+    font-weight: bold; /* optionnel : texte plus visible */
+}
+.st-key-btn_fr button:hover{
+    border: none;
+    box-shadow:0 8px 16px 0 rgba(0,0,0,0.6)
+}
+
+.st-key-btn_en button {
+    margin-top: 30px;
+    border: 1px solid black; /* ✅ bien définir l'épaisseur et le style */
+    border-radius: 8px; /* optionnel : arrondir les coins */
+    /*width: 50px;*/
+}
+.st-key-btn_en button p {
+    color: black;
+    font-weight: bold; /* optionnel : texte plus visible */
+}
+.st-key-btn_en button:hover{
+    border: none;
+    box-shadow:0 8px 16px 0 rgba(0,0,0,0.6)
+}
