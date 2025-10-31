@@ -402,6 +402,7 @@ if st.session_state.data_frame is not None:
 with st.popover(
     "Ask Ai" if st.session_state.english == True else "Demander à l’IA",
     icon=":material/smart_toy:",
+    help= t("Votre guide pour souscrire à ce produit","Your guide to subscribing to this product")
 ):
     st.write(
         t(
