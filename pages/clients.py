@@ -12,6 +12,7 @@ import json
 import os
 import pathlib
 import sys
+import requests
 
 
 # @st.cache_data
@@ -37,6 +38,15 @@ if st.session_state.client_index == "":
 def t(fr, en):
     """Renvoie fr ou en selon la langue choisie"""
     return en if st.session_state.english else fr
+
+
+# def get_mad_to_eur_rate(amount, from_currency, to_currency):
+#    response = requests.get(
+#        f"https://api.frankfurter.app/latest?amount={amount}&from={from_currency}&to={to_currency}"
+#    )
+#    data = response.json()
+#    st.write(data)
+#    return data["rates"]["EUR"]
 
 
 # --- CONFIGURATION DE LA PAGE ---
@@ -397,16 +407,36 @@ value_12 = df["Produit - Crédit Immo avec remboursement in fine"].iat[client_in
 value_13 = df["Produit - Crédit à la consommation non affecté"].iat[client_index] != 0
 value_14 = df["Produit - Crédit Auto"].iat[client_index] != 0
 value_15 = df["Propriétaire"].iat[client_index] != 0
+
+Euro_rate = 0.093
 total_income = (
-    df["Revenu annuel"].iat[client_index]
-    + df["Montant mouvements créditeurs"].iat[client_index]
+    (
+        df["Revenu annuel"].iat[client_index]
+        + df["Montant mouvements créditeurs"].iat[client_index]
+    )
+    if st.session_state.english != True
+    else (
+        df["Revenu annuel"].iat[client_index]
+        + df["Montant mouvements créditeurs"].iat[client_index]
+    )
+    * Euro_rate
 )
 total_expenses = (
-    df["Montant mouvements débiteurs"].iat[client_index]
-    + df["Montant transactions carte (national)"].iat[client_index]
-    + df["Montant transactions carte (international)"].iat[client_index]
+    (
+        df["Montant mouvements débiteurs"].iat[client_index]
+        + df["Montant transactions carte (national)"].iat[client_index]
+        + df["Montant transactions carte (international)"].iat[client_index]
+    )
+    if st.session_state.english != True
+    else (
+        df["Montant mouvements débiteurs"].iat[client_index]
+        + df["Montant transactions carte (national)"].iat[client_index]
+        + df["Montant transactions carte (international)"].iat[client_index]
+    )
+    * Euro_rate
 )
 current_net_worth = total_income - total_expenses
+
 
 months = [
     "Jan" if st.session_state.english != True else "Jan",
@@ -427,395 +457,602 @@ months = [
 np.random.seed(client_index)
 
 # Générer revenus et dépenses mensuels autour de la moyenne
-monthly_income = np.random.normal(
-    loc=(
-        df["Revenu annuel"].iat[client_index]
-        + df["Montant mouvements créditeurs"].iat[client_index]
-    )
-    / 12,
-    scale=(
-        df["Revenu annuel"].iat[client_index]
-        + df["Montant mouvements créditeurs"].iat[client_index]
-    )
-    * 0.1,
+monthly_inc = np.random.normal(
+    loc=total_income / 12,
+    scale=total_expenses * 0.1,
     size=12,
 )
-monthly_expenses = np.random.normal(
-    loc=(
-        df["Montant mouvements débiteurs"].iat[client_index]
-        + df["Montant transactions carte (national)"].iat[client_index]
-        + df["Montant transactions carte (international)"].iat[client_index]
-    )
-    / 12,
-    scale=(
-        df["Montant mouvements débiteurs"].iat[client_index]
-        + df["Montant transactions carte (national)"].iat[client_index]
-        + df["Montant transactions carte (international)"].iat[client_index]
-    )
-    * 0.1,
+monthly_exp = np.random.normal(
+    loc=total_expenses / 12,
+    scale=total_expenses * 0.1,
     size=12,
 )
 
 # S'assurer que toutes les valeurs sont strictement supérieures à 0
-monthly_income = np.clip(monthly_income, 2000, None)
-monthly_expenses = np.clip(monthly_expenses, 2000, None)
-
-monthly_data = pd.DataFrame(
-    {"Income": monthly_income, "Expenses": monthly_expenses}, index=months
-)
+monthly_income = np.clip(monthly_inc, 0, None)
+monthly_expenses = np.clip(monthly_exp, 0, None)
 
 local_recommendations_output_file = "Data/results/local_recommendations.json"
 meta_recommendations_output_file = "Data/results/meta_recommendations.json"
 expert_recommendations_output_file = "Data/results/expert_recommendations.json"
 
-Advantages_Compte_chèque_en_DH = [
+Advantages_Compte_chèque_en_DH = {
     (
         "Gestion facile des paiements"
         if st.session_state.english != True
         else "Easy payment management"
+    ): t(
+        "Ce service simplifie la réalisation de vos paiements quotidiens, évitant les files d'attente en agence.",
+        "This service simplifies your daily payments, helping you avoid waiting in line at the branch.",
     ),
     (
         "Virements et retraits"
         if st.session_state.english != True
         else "Transfers and withdrawals"
+    ): t(
+        "Les virements et retraits sont gérés en toute simplicité, avec un accès rapide à vos fonds.",
+        "Transfers and withdrawals are handled with ease, giving you quick access to your funds.",
     ),
     (
         "Carte bancaire associée"
         if st.session_state.english != True
         else "Linked bank card"
+    ): t(
+        "Une carte bancaire dédiée facilite les achats et retraits sans contrainte supplémentaire.",
+        "A dedicated bank card makes purchases and withdrawals easy, without any additional hassle.",
     ),
-]
+}
 
-Advantages_Compte_chèque_en_devises = [
+Advantages_Compte_chèque_en_devises = {
     (
         "Facilite les transactions internationales"
         if st.session_state.english != True
         else "Facilitates international transactions"
+    ): t(
+        "Ce compte rend les échanges monétaires à l'étranger plus fluides et sans complications de conversion.",
+        "This account makes international money exchanges smoother and free from conversion hassles.",
     ),
     (
         "Convertibilité rapide"
         if st.session_state.english != True
         else "Quick convertibility"
+    ): t(
+        "La convertibilité des devises est immédiate, optimisant vos opérations transfrontalières.",
+        "Currency convertibility is instantaneous, optimizing your cross-border transactions.",
     ),
-]
+}
 
-Advantages_Compte_sur_carnet = [
+Advantages_Compte_sur_carnet = {
     (
         "Rendement sur les dépôts"
         if st.session_state.english != True
         else "Return on deposits"
+    ): t(
+        "Vos dépôts génèrent un intérêt régulier, boostant la croissance de votre épargne.",
+        "Your deposits generate regular interest, boosting the growth of your savings.",
     ),
     (
         "Flexibilité de retrait"
         if st.session_state.english != True
         else "Withdrawal flexibility"
+    ): t(
+        "Les retraits sont possibles à tout moment sans pénalité, pour une liquidité optimale.",
+        "Withdrawals can be made at any time without penalty, ensuring optimal liquidity.",
     ),
-]
+}
 
-Advantages_Compte_à_terme = [
+Advantages_Compte_à_terme = {
     (
         "Taux d’intérêt supérieur au compte épargne"
         if st.session_state.english != True
         else "Higher interest rate than savings account"
+    ): t(
+        "Le taux d'intérêt plus élevé maximise vos gains comparé aux comptes standards.",
+        "The higher interest rate maximizes your earnings compared to standard accounts.",
     ),
-    "Sécurité" if st.session_state.english != True else "Security",
-]
+    "Sécurité" if st.session_state.english != True else "Security": t(
+        "Vos fonds sont protégés et garantis sur la durée choisie, pour une tranquillité d'esprit.",
+        "Your funds are protected and guaranteed for the chosen term, providing peace of mind.",
+    ),
+}
 
-Advantages_Carte_basique = [
-    "Accessibilité" if st.session_state.english != True else "Accessibility",
-    "Sécurité" if st.session_state.english != True else "Security",
+Advantages_Carte_basique = {
+    "Accessibilité" if st.session_state.english != True else "Accessibility": t(
+        "Cette carte est disponible pour tous, rendant les services bancaires à portée de main.",
+        "This card is available to everyone, making banking services easily accessible.",
+    ),
+    "Sécurité" if st.session_state.english != True else "Security": t(
+        "Des mesures de sécurité intégrées protègent vos transactions contre les fraudes.",
+        "Built-in security measures protect your transactions against fraud.",
+    ),
     (
         "Paiements électroniques"
         if st.session_state.english != True
         else "Electronic payments"
+    ): t(
+        "Les paiements sans contact accélèrent vos achats quotidiens en magasin ou en ligne.",
+        "Contactless payments speed up your daily purchases, both in-store and online.",
     ),
-]
+}
 
-Advantages_Carte_Visa = [
-    "Acceptée partout" if st.session_state.english != True else "Accepted worldwide",
-    "Sécurité" if st.session_state.english != True else "Security",
+Advantages_Carte_Visa = {
+    "Acceptée partout" if st.session_state.english != True else "Accepted worldwide": t(
+        "Utilisable dans le monde entier, cette carte élimine les barrières géographiques pour vos paiements.",
+        "Usable worldwide, this card removes geographical barriers for your payments.",
+    ),
+    "Sécurité" if st.session_state.english != True else "Security": t(
+        "Technologies avancées de chiffrement assurent la protection de vos données financières.",
+        "Advanced encryption technologies ensure the protection of your financial data.",
+    ),
     (
         "Possibilité de crédit"
         if st.session_state.english != True
         else "Credit option available"
+    ): t(
+        "Option de crédit intégrée pour financer des achats sans impact immédiat sur votre budget.",
+        "Integrated credit option to finance purchases without an immediate impact on your budget.",
     ),
-]
+}
 
-Advantages_Carte_Visa_Premium = [
-    "Assurance voyages" if st.session_state.english != True else "Travel insurance",
+Advantages_Carte_Visa_Premium = {
+    "Assurance voyages" if st.session_state.english != True else "Travel insurance": t(
+        "Couverture complète pour vos déplacements, incluant annulation et bagages perdus.",
+        "Comprehensive coverage for your travels, including cancellation and lost luggage.",
+    ),
     (
         "Services conciergerie"
         if st.session_state.english != True
         else "Concierge services"
+    ): t(
+        "Assistance personnalisée 24/7 pour réservations et conseils lors de vos voyages.",
+        "Personalized 24/7 assistance for bookings and guidance during your travels.",
     ),
-    "Plafonds plus élevés" if st.session_state.english != True else "Higher limits",
-]
+    "Plafonds plus élevés" if st.session_state.english != True else "Higher limits": t(
+        "Limites de dépenses supérieures pour plus de flexibilité dans vos transactions.",
+        "Higher spending limits for greater flexibility in your transactions.",
+    ),
+}
 
-Advantages_Carte_Visa_Elite = [
-    "Accès lounges" if st.session_state.english != True else "Lounge access",
+Advantages_Carte_Visa_Elite = {
+    "Accès lounges" if st.session_state.english != True else "Lounge access": t(
+        "Accès gratuit aux salons d'aéroport pour un confort accru pendant les attentes.",
+        "Free access to airport lounges for enhanced comfort during your waits.",
+    ),
     (
         "Assurances complètes"
         if st.session_state.english != True
         else "Comprehensive insurance"
+    ): t(
+        "Protections étendues contre les accidents, voyages et achats pour une sérénité totale.",
+        "Extended protection against accidents, travel, and purchases for complete peace of mind.",
     ),
-    "Service prioritaire" if st.session_state.english != True else "Priority service",
-]
+    (
+        "Service prioritaire"
+        if st.session_state.english != True
+        else "Priority service"
+    ): t(
+        "Traitement accéléré de vos demandes en agence ou par téléphone.",
+        "Fast-tracked handling of your requests at the branch or by phone.",
+    ),
+}
 
-Advantages_Carte_Visa_Infinite = [
-    "Concierge personnel" if st.session_state.english != True else "Personal concierge",
-    "Assurances premium" if st.session_state.english != True else "Premium insurance",
-    "Programmes luxe" if st.session_state.english != True else "Luxury programs",
-]
+Advantages_Carte_Visa_Infinite = {
+    (
+        "Concierge personnel"
+        if st.session_state.english != True
+        else "Personal concierge"
+    ): t(
+        "Un assistant dédié gère vos réservations et besoins personnels avec discrétion.",
+        "A dedicated assistant handles your bookings and personal needs with discretion.",
+    ),
+    (
+        "Assurances premium"
+        if st.session_state.english != True
+        else "Premium insurance"
+    ): t(
+        "Couvertures haut de gamme pour santé, voyages et biens de luxe.",
+        "Premium coverage for health, travel, and luxury assets.",
+    ),
+    "Programmes luxe" if st.session_state.english != True else "Luxury programs": t(
+        "Avantages exclusifs comme invitations à événements VIP et offres partenaires premium.",
+        "Exclusive benefits such as VIP event invitations and premium partner offers.",
+    ),
+}
 
-Advantages_Crédit_Immo_avec_garantie_hypothécaire = [
+Advantages_Crédit_Immo_avec_garantie_hypothécaire = {
     (
         "Taux généralement plus bas"
         if st.session_state.english != True
         else "Generally lower interest rates"
+    ): t(
+        "Des taux d'intérêt réduits diminuent le coût total de votre emprunt sur la durée.",
+        "Lower interest rates reduce the total cost of your loan over time.",
     ),
     (
         "Sécurise le prêt pour la banque"
         if st.session_state.english != True
         else "Secures the loan for the bank"
+    ): t(
+        "La garantie hypothécaire rassure la banque, facilitant l'approbation du crédit.",
+        "The mortgage guarantee reassures the bank, making loan approval easier.",
     ),
-]
+}
 
-Advantages_Crédit_Immo_avec_garantie_liquide = [
+Advantages_Crédit_Immo_avec_garantie_liquide = {
     (
         "Plus rapide à mettre en place"
         if st.session_state.english != True
         else "Faster to set up"
+    ): t(
+        "Procédure accélérée pour obtenir votre financement sans délai administratif long.",
+        "Fast-tracked process to obtain your financing without lengthy administrative delays.",
     ),
-    "Taux compétitif" if st.session_state.english != True else "Competitive rate",
-]
+    "Taux compétitif" if st.session_state.english != True else "Competitive rate": t(
+        "Taux d'intérêt attractifs pour un emprunt à coût maîtrisé.",
+        "Attractive interest rates for a loan with controlled costs.",
+    ),
+}
 
-Advantages_Crédit_Immo_avec_remboursement_in_fine = [
+Advantages_Crédit_Immo_avec_remboursement_in_fine = {
     (
         "Permet de libérer trésorerie mensuelle"
         if st.session_state.english != True
         else "Frees up monthly cash flow"
+    ): t(
+        "Pas de remboursements mensuels, préservant votre cash-flow pour d'autres investissements.",
+        "No monthly repayments, preserving your cash flow for other investments.",
     ),
     (
         "Adapté investissement locatif"
         if st.session_state.english != True
         else "Suitable for rental investment"
+    ): t(
+        "Idéal pour les biens locatifs, maximisant les revenus nets pendant la durée du prêt.",
+        "Ideal for rental properties, maximizing net income over the loan term.",
     ),
-]
+}
 
-Advantages_Crédit_Immo_subventionné = [
-    "Taux avantageux" if st.session_state.english != True else "Preferential rate",
-    "Soutien public" if st.session_state.english != True else "Public support",
-]
+Advantages_Crédit_Immo_subventionné = {
+    "Taux avantageux" if st.session_state.english != True else "Preferential rate": t(
+        "Taux subventionnés par l'État réduisent significativement vos charges d'intérêt.",
+        "Government-subsidized rates significantly reduce your interest expenses.",
+    ),
+    "Soutien public" if st.session_state.english != True else "Public support": t(
+        "Aide gouvernementale pour favoriser l'accès au logement abordable.",
+        "Government assistance to promote access to affordable housing.",
+    ),
+}
 
-Advantages_Crédit_à_la_consommation_non_affecté = [
-    "Rapidité" if st.session_state.english != True else "Speed",
-    "Flexibilité" if st.session_state.english != True else "Flexibility",
+Advantages_Crédit_à_la_consommation_non_affecté = {
+    "Rapidité" if st.session_state.english != True else "Speed": t(
+        "Obtention rapide du fonds sans paperasse excessive pour vos besoins imprévus.",
+        "Quick access to funds without excessive paperwork for your unforeseen needs.",
+    ),
+    "Flexibilité" if st.session_state.english != True else "Flexibility": t(
+        "Utilisez l'argent comme bon vous semble, sans restrictions d'usage.",
+        "Use the money as you wish, with no usage restrictions.",
+    ),
     (
         "Aucune obligation de destination"
         if st.session_state.english != True
         else "No specific purpose required"
+    ): t(
+        "Pas de justificatifs requis, préservant votre vie privée.",
+        "No documentation required, preserving your privacy.",
     ),
-]
+}
 
-Advantages_Crédit_Auto = [
-    "Taux compétitif" if st.session_state.english != True else "Competitive rate",
+Advantages_Crédit_Auto = {
+    "Taux compétitif" if st.session_state.english != True else "Competitive rate": t(
+        "Taux bas adaptés à l'achat auto, rendant le véhicule plus accessible financièrement.",
+        "Low rates tailored for car purchases, making the vehicle more financially accessible.",
+    ),
     (
         "Remboursement échelonné"
         if st.session_state.english != True
         else "Installment repayment"
+    ): t(
+        "Échéances adaptées à votre budget pour un achat sans pression.",
+        "Payment terms tailored to your budget for a stress-free purchase.",
     ),
     (
         "Assurance souvent incluse"
         if st.session_state.english != True
         else "Insurance often included"
+    ): t(
+        "Couverture assurance intégrée pour protéger votre investissement dès le départ.",
+        "Integrated insurance coverage to protect your investment from the start.",
     ),
-]
+}
 
-Advantages_Découvert = [
-    "Flexibilité" if st.session_state.english != True else "Flexibility",
-    "Immédiat" if st.session_state.english != True else "Immediate access",
+Advantages_Découvert = {
+    "Flexibilité" if st.session_state.english != True else "Flexibility": t(
+        "Couvre les imprévus sans interruption de vos paiements courants.",
+        "Covers unexpected events without interrupting your regular payments.",
+    ),
+    "Immédiat" if st.session_state.english != True else "Immediate access": t(
+        "Activation instantanée pour résoudre les manques de trésorerie urgents.",
+        "Instant activation to address urgent cash flow shortages.",
+    ),
     (
         "Couvre dépenses urgentes"
         if st.session_state.english != True
         else "Covers urgent expenses"
+    ): t(
+        "Protège contre les refus de paiement embarrassants en cas de découvert.",
+        "Protects against embarrassing payment refusals in case of overdraft.",
     ),
-]
+}
 
-Advantages_Assurance_décès_invalidité_adossée_à_un_financement = [
+Advantages_Assurance_décès_invalidité_adossée_à_un_financement = {
     (
         "Sécurité pour la famille et la banque"
         if st.session_state.english != True
         else "Security for both family and bank"
+    ): t(
+        "En cas d'incident, le prêt est remboursé, soulageant votre famille et la banque.",
+        "In case of an incident, the loan is repaid, relieving both your family and the bank.",
     ),
-]
+}
 
-Advantages_Assurance_décès_toutes_causes = [
-    "Sécurité famille" if st.session_state.english != True else "Family security",
+Advantages_Assurance_décès_toutes_causes = {
+    "Sécurité famille" if st.session_state.english != True else "Family security": t(
+        "Garantit un capital à vos proches pour maintenir leur niveau de vie après votre départ.",
+        "Ensures capital for your loved ones to maintain their standard of living after your passing.",
+    ),
     (
         "Couverture complète"
         if st.session_state.english != True
         else "Comprehensive coverage"
+    ): t(
+        "Protection contre tous les risques de décès, sans exclusions majeures.",
+        "Protection against all death-related risks, with no major exclusions.",
     ),
-]
+}
 
-Advantages_Multirisques_bâtiment = [
-    "Couverture complète" if st.session_state.english != True else "Full coverage",
-    "Tranquillité" if st.session_state.english != True else "Peace of mind",
-]
+Advantages_Multirisques_bâtiment = {
+    "Couverture complète" if st.session_state.english != True else "Full coverage": t(
+        "Protège votre logement contre les principaux sinistres comme incendie, inondation ou cambriolage.",
+        "Protects your home against major incidents such as fire, flood, or burglary.",
+    ),
+    "Tranquillité" if st.session_state.english != True else "Peace of mind": t(
+        "Vivez sereinement en sachant que les réparations sont prises en charge.",
+        "Live with peace of mind knowing that repairs are covered.",
+    ),
+}
 
-Advantages_Maladie_complémentaire = [
+Advantages_Maladie_complémentaire = {
     (
         "Accès à plus de soins"
         if st.session_state.english != True
         else "Access to more healthcare options"
+    ): t(
+        "Bénéficiez de consultations et traitements supplémentaires non couverts par la sécurité sociale.",
+        "Benefit from additional consultations and treatments not covered by social security.",
     ),
     (
         "Remboursements supérieurs"
         if st.session_state.english != True
         else "Higher reimbursements"
+    ): t(
+        "Taux de remboursement plus élevés pour des frais médicaux importants.",
+        "Higher reimbursement rates for significant medical expenses.",
     ),
-]
+}
 
-Advantages_Retraite_complémentaire = [
+Advantages_Retraite_complémentaire = {
     (
         "Prévoit revenus à la retraite"
         if st.session_state.english != True
         else "Provides income at retirement"
+    ): t(
+        "Complémente votre pension d'État pour un revenu plus confortable à la retraite.",
+        "Complements your state pension for a more comfortable retirement income.",
     ),
-    "Avantage fiscal" if st.session_state.english != True else "Tax benefit",
-]
+    "Avantage fiscal" if st.session_state.english != True else "Tax benefit": t(
+        "Déductions fiscales sur les cotisations, optimisant votre imposition actuelle.",
+        "Tax deductions on contributions, optimizing your current tax situation.",
+    ),
+}
 
-Advantages_Retraite_complémentaire_en_UC = [
+Advantages_Retraite_complémentaire_en_UC = {
     (
         "Rendement potentiel plus élevé"
         if st.session_state.english != True
         else "Potentially higher returns"
+    ): t(
+        "Investissements en unités de compte pour des rendements supérieurs à l'épargne classique.",
+        "Investments in unit-linked funds for returns higher than traditional savings.",
     ),
-    "Diversification" if st.session_state.english != True else "Diversification",
-]
+    "Diversification" if st.session_state.english != True else "Diversification": t(
+        "Répartition sur actions et obligations pour réduire les risques globaux.",
+        "Allocation across stocks and bonds to reduce overall risk.",
+    ),
+}
 
-Advantages_Épargne_Éducation = [
-    "Avantages fiscaux" if st.session_state.english != True else "Tax advantages",
-    "Sécurité des fonds" if st.session_state.english != True else "Fund security",
-]
+Advantages_Épargne_Éducation = {
+    "Avantages fiscaux" if st.session_state.english != True else "Tax advantages": t(
+        "Réductions d'impôts sur les versements, rendant l'épargne plus rentable.",
+        "Tax reductions on contributions, making your savings more profitable.",
+    ),
+    "Sécurité des fonds" if st.session_state.english != True else "Fund security": t(
+        "Fonds protégés et garantis pour assurer les études sans risque de perte.",
+        "Protected and guaranteed funds to ensure education without risk of loss.",
+    ),
+}
 
-Advantages_Épargne_Logement = [
-    "Rendement garanti" if st.session_state.english != True else "Guaranteed return",
+Advantages_Épargne_Logement = {
+    "Rendement garanti" if st.session_state.english != True else "Guaranteed return": t(
+        "Intérêts fixes sur vos dépôts pour une croissance prévisible de votre capital.",
+        "Fixed interest on your deposits for predictable growth of your capital.",
+    ),
     (
         "Prime de l’État possible"
         if st.session_state.english != True
         else "Possible state bonus"
+    ): t(
+        "Bonus gouvernemental à l'achat, boostant votre apport personnel.",
+        "Government bonus on purchase, boosting your personal contribution.",
     ),
-]
+}
 
-Advantages_OPCVM_monétaires = [
-    "Sécurité" if st.session_state.english != True else "Security",
-    "Liquidité élevée" if st.session_state.english != True else "High liquidity",
-    "Rendement stable" if st.session_state.english != True else "Stable return",
-]
+Advantages_OPCVM_monétaires = {
+    "Sécurité" if st.session_state.english != True else "Security": t(
+        "Investissements à faible risque en actifs liquides pour préserver votre capital.",
+        "Low-risk investments in liquid assets to preserve your capital.",
+    ),
+    "Liquidité élevée" if st.session_state.english != True else "High liquidity": t(
+        "Retraits rapides sans perte de valeur, idéal pour les besoins à court terme.",
+        "Quick withdrawals without loss of value, ideal for short-term needs.",
+    ),
+    "Rendement stable" if st.session_state.english != True else "Stable return": t(
+        "Rendements constants et prévisibles pour une épargne sereine.",
+        "Consistent and predictable returns for worry-free savings.",
+    ),
+}
 
-Advantages_OPCVM_obligataires = [
+Advantages_OPCVM_obligataires = {
     (
         "Rendement supérieur au compte épargne"
         if st.session_state.english != True
         else "Higher return than savings account"
+    ): t(
+        "Meilleurs retours que les comptes standards grâce aux obligations sélectionnées.",
+        "Better returns than standard accounts thanks to carefully selected bonds.",
     ),
-    "Diversification" if st.session_state.english != True else "Diversification",
-]
+    "Diversification" if st.session_state.english != True else "Diversification": t(
+        "Exposition à divers émetteurs pour minimiser les risques spécifiques.",
+        "Exposure to multiple issuers to minimize specific risks.",
+    ),
+}
 
-Advantages_OPCVM_diversifiés = [
+Advantages_OPCVM_diversifiés = {
     (
         "Rendement potentiellement plus élevé"
         if st.session_state.english != True
         else "Potentially higher return"
+    ): t(
+        "Potentiel de gains accrus via un mix équilibré d'actifs.",
+        "Increased earning potential through a balanced mix of assets.",
     ),
-    "Risque modéré" if st.session_state.english != True else "Moderate risk",
-]
+    "Risque modéré" if st.session_state.english != True else "Moderate risk": t(
+        "Équilibre entre croissance et stabilité pour un profil investisseur prudent.",
+        "Balance between growth and stability for a conservative investor profile.",
+    ),
+}
 
-Advantages_OPCVM_actions = [
+Advantages_OPCVM_actions = {
     (
         "Potentiel de rendement élevé"
         if st.session_state.english != True
         else "High return potential"
+    ): t(
+        "Opportunités de fortes valorisations grâce aux actions dynamiques sélectionnées.",
+        "Opportunities for high appreciation through carefully selected dynamic stocks.",
     ),
     (
         "Diversification internationale"
         if st.session_state.english != True
         else "International diversification"
+    ): t(
+        "Exposition mondiale aux marchés pour une croissance diversifiée.",
+        "Global market exposure for diversified growth.",
     ),
-]
+}
 
-Advantages_Pack_bancaire_basique = [
+Advantages_Pack_bancaire_basique = {
     (
         "Économie sur frais combinés"
         if st.session_state.english != True
         else "Savings on combined fees"
+    ): t(
+        "Tarification groupée réduisant les coûts individuels des services.",
+        "Bundled pricing reducing individual service costs.",
     ),
-    "Simplicité" if st.session_state.english != True else "Simplicity",
-]
+    "Simplicité" if st.session_state.english != True else "Simplicity": t(
+        "Tout-en-un pour une gestion bancaire sans complexité.",
+        "All-in-one solution for hassle-free banking management.",
+    ),
+}
 
-Advantages_Pack_bancaire_étoffé = [
+Advantages_Pack_bancaire_étoffé = {
     (
         "Services complets"
         if st.session_state.english != True
         else "Comprehensive services"
+    ): t(
+        "Accès à une gamme étendue de produits pour tous vos besoins financiers.",
+        "Access to a wide range of products for all your financial needs.",
     ),
     (
         "Réductions sur produits associés"
         if st.session_state.english != True
         else "Discounts on related products"
+    ): t(
+        "Remises croisées sur assurances et épargne intégrées au pack.",
+        "Cross discounts on insurance and savings included in the package.",
     ),
-]
+}
 
 Coût_estimatif_des_frais_Compte_chèque_en_DH = {
-    t("Frais d’ouverture", "Opening fees"): t("0 DH", "0 MAD"),
-    t("Frais mensuels", "Monthly fees"): t("20 - 50 DH", "20 - 50 MAD"),
+    t("Frais d’ouverture", "Opening fees"): t("0 DH", "0 €"),
+    t("Frais mensuels", "Monthly fees"): t("20 - 50 DH", "1,86 - 4,65 €"),
     t("Frais virements/chéquiers", "Transfers/Cheque book fees"): t(
         "selon usage", "depending on usage"
     ),
 }
 
 Coût_estimatif_des_frais_Compte_chèque_en_devises = {
-    t("Frais ouverture", "Opening fees"): t("0 DH", "0 MAD"),
+    t("Frais ouverture", "Opening fees"): t("0 DH", "0 €"),
     t("Frais tenue de compte", "Account maintenance fees"): t(
-        "50 - 100 DH/mois", "50 - 100 MAD/month"
+        "50 - 100 DH/mois", "4,65 - 9,3 €/month"
     ),
 }
 
 Coût_estimatif_des_frais_Compte_sur_carnet = {
-    t("Frais ouverture", "Opening fees"): t("0 DH", "0 MAD"),
-    t("Frais gestion", "Management fees"): t("0 - 10 DH/mois", "0 - 10 MAD/month"),
+    t("Frais ouverture", "Opening fees"): t("0 DH", "0 €"),
+    t("Frais gestion", "Management fees"): t("0 - 10 DH/mois", "0 - 0,93 €/month"),
 }
 
 Coût_estimatif_des_frais_Compte_à_terme = {
-    t("Frais ouverture", "Opening fees"): t("0 DH", "0 MAD"),
+    t("Frais ouverture", "Opening fees"): t("0 DH", "0 €"),
     t("Pas de frais mensuels", "No monthly fees"): "",
     t("Pénalités en cas de retrait anticipé", "Penalties for early withdrawal"): "",
 }
 
 Coût_estimatif_des_frais_Carte_basique = {
-    t("Frais annuels", "Annual fees"): t("100 - 200 DH", "100 - 200 MAD"),
-    t("Retrait", "Withdrawal"): t("3 - 5 DH/transaction", "3 - 5 MAD/transaction"),
+    t("Frais annuels", "Annual fees"): t("100 - 200 DH", "9,3 - 18,6 €"),
+    t("Retrait", "Withdrawal"): t(
+        "3 - 5 DH/transaction", "0,279 - 0,465 €/transaction"
+    ),
 }
 
 Coût_estimatif_des_frais_Carte_Visa = {
-    t("Frais annuels", "Annual fees"): t("200 - 400 DH", "200 - 400 MAD"),
-    t("Retrait", "Withdrawal"): t("5 - 10 DH/transaction", "5 - 10 MAD/transaction"),
+    t("Frais annuels", "Annual fees"): t("200 - 400 DH", "18,6 - 37,2 €"),
+    t("Retrait", "Withdrawal"): t(
+        "5 - 10 DH/transaction", "0,465 - 0,93 €/transaction"
+    ),
 }
 
 Coût_estimatif_des_frais_Carte_Visa_Premium = {
-    t("Frais annuels", "Annual fees"): t("600 - 1000 DH", "600 - 1000 MAD"),
-    t("Retrait", "Withdrawal"): t("5 - 10 DH/transaction", "5 - 10 MAD/transaction"),
+    t("Frais annuels", "Annual fees"): t("600 - 1000 DH", "55,8 - 93 €"),
+    t("Retrait", "Withdrawal"): t(
+        "5 - 10 DH/transaction", "0,465 - 0,93 €/transaction"
+    ),
 }
 
 Coût_estimatif_des_frais_Carte_Visa_Elite = {
-    t("Frais annuels", "Annual fees"): t("1200 - 2000 DH", "1200 - 2000 MAD"),
-    t("Retrait", "Withdrawal"): t("5 - 10 DH/transaction", "5 - 10 MAD/transaction"),
+    t("Frais annuels", "Annual fees"): t("1200 - 2000 DH", "111,6 - 186 €"),
+    t("Retrait", "Withdrawal"): t(
+        "5 - 10 DH/transaction", "0,465 - 0,93 €/transaction"
+    ),
 }
 
 Coût_estimatif_des_frais_Carte_Visa_Infinite = {
-    t("Frais annuels", "Annual fees"): t("3000 - 5000 DH", "3000 - 5000 MAD"),
-    t("Retrait", "Withdrawal"): t("5 - 10 DH/transaction", "5 - 10 MAD/transaction"),
+    t("Frais annuels", "Annual fees"): t("3000 - 5000 DH", "279 - 465 €"),
+    t("Retrait", "Withdrawal"): t(
+        "5 - 10 DH/transaction", "0,465 - 0,93 €/transaction"
+    ),
 }
 
 Coût_estimatif_des_frais_Crédit_Immo_avec_garantie_hypothécaire = {
@@ -854,7 +1091,7 @@ Coût_estimatif_des_frais_Crédit_Auto = {
 
 Coût_estimatif_des_frais_Découvert = {
     t("Intérêts", "Interest"): "12% - 18%",
-    t("Commissions", "Commissions"): t("50 - 100 DH/mois", "50 - 100 MAD/month"),
+    t("Commissions", "Commissions"): t("50 - 100 DH/mois", "4,65 - 9,3 €/month"),
 }
 
 Coût_estimatif_des_frais_Assurance_décès_invalidité_adossée_à_un_financement = {
@@ -877,7 +1114,7 @@ Coût_estimatif_des_frais_Multirisques_bâtiment = {
 
 Coût_estimatif_des_frais_Maladie_complémentaire = {
     t("Prime", "Premium"): t(
-        "500 - 5000 DH/an selon couverture", "500 - 5000 MAD/year depending on coverage"
+        "500 - 5000 DH/an selon couverture", "46,5 - 465 €/year depending on coverage"
     ),
 }
 
@@ -894,7 +1131,7 @@ Coût_estimatif_des_frais_Retraite_complémentaire_en_UC = {
 
 Coût_estimatif_des_frais_Épargne_Éducation = {
     t("Versements flexibles", "Flexible payments"): "",
-    t("Frais tenue compte 0-50 DH/mois", "Account fees 0-50 MAD/month"): "",
+    t("Frais tenue compte 0-50 DH/mois", "Account fees 0-4,65 €/month"): "",
 }
 
 Coût_estimatif_des_frais_Épargne_Logement = {
@@ -904,293 +1141,424 @@ Coût_estimatif_des_frais_Épargne_Logement = {
 
 Coût_estimatif_des_frais_OPCVM_monétaires = {
     t("Frais gestion", "Management fees"): "0,2% - 1%",
-    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "1000 MAD"),
+    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "93 €"),
 }
 
 Coût_estimatif_des_frais_OPCVM_obligataires = {
     t("Frais gestion", "Management fees"): "0,3% - 1%",
-    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "1000 MAD"),
+    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "93 €"),
 }
 
 Coût_estimatif_des_frais_OPCVM_diversifiés = {
     t("Frais gestion", "Management fees"): "0,5% - 1,5%",
-    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "1000 MAD"),
+    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "93 €"),
 }
 
 Coût_estimatif_des_frais_OPCVM_actions = {
     t("Frais gestion", "Management fees"): "0,5% - 2%",
-    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "1000 MAD"),
+    t("Souscription minimale", "Minimum subscription"): t("1000 DH", "93 €"),
 }
 
 Coût_estimatif_des_frais_Pack_bancaire_basique = {
-    t("Abonnement", "Subscription"): t("50 - 150 DH/mois", "50 - 150 MAD/month"),
+    t("Abonnement", "Subscription"): t("50 - 150 DH/mois", "4,65 - 13,95 €/month"),
 }
 
 Coût_estimatif_des_frais_Pack_bancaire_étoffé = {
-    t("Abonnement", "Subscription"): t("150 - 400 DH/mois", "150 - 400 MAD/month"),
+    t("Abonnement", "Subscription"): t("150 - 400 DH/mois", "13,95 - 37,2 €/month"),
 }
 
-categories_eng = {
-    "Comptes": [
-        "Product - Checking account in MAD",
-        "Product - Checking account in foreign currency",
-        "Product - Savings account",
-        "Product - Term deposit account",
-    ],
-    "Cartes": [
-        "Product - Basic card",
-        "Product - Visa card",
-        "Product - Visa Premium card",
-        "Product - Visa Elite card",
-        "Product - Visa Infinite card",
-    ],
-    "Financement immobilier": [
-        "Product - Mortgage loan with real estate guarantee",
-        "Product - Mortgage loan with cash guarantee",
-        "Product - Mortgage loan with bullet repayment",
-        "Product - Subsidized mortgage loan",
-    ],
-    "Financement à la consommation": [
-        "Product - Unsecured consumer loan",
-        "Product - Auto loan",
-        "Product - Overdraft facility",
-    ],
-    "Assurance": [
-        "Product - Death and disability insurance linked to a loan",
-        "Product - All-cause death insurance",
-        "Product - Multi-risk building insurance",
-        "Product - Supplementary health insurance",
-    ],
-    "Retraite & Prévoyance": [
-        "Product - Supplementary retirement plan",
-        "Product - Unit-linked supplementary retirement plan",
-    ],
-    "Épargne & Placement": [
-        "Product - Education savings plan",
-        "Product - Housing savings plan",
-        "Product - Money market mutual fund (OPCVM)",
-        "Product - Bond mutual fund (OPCVM)",
-        "Product - Diversified mutual fund (OPCVM)",
-        "Product - Equity mutual fund (OPCVM)",
-    ],
-    "Packs bancaires": [
-        "Product - Basic banking package",
-        "Product - Enhanced banking package",
-    ],
-}
 Advantages = {
-    "Produit - Compte chèque en DH" if st.session_state.english != True else "Product - Checking account in MAD": [
-        "Gestion facile des paiements, virements et retraits; carte bancaire associée"
+    (
+        "Produit - Compte chèque en DH"
         if st.session_state.english != True
-        else "Easy payment management, transfers and withdrawals; linked bank card",
+        else "Product - Checking account in MAD"
+    ): [
+        (
+            "Gestion facile des paiements, virements et retraits; carte bancaire associée"
+            if st.session_state.english != True
+            else "Easy payment management, transfers and withdrawals; linked bank card"
+        ),
         Advantages_Compte_chèque_en_DH,
         Coût_estimatif_des_frais_Compte_chèque_en_DH,
     ],
-    "Produit - Compte chèque en devises" if st.session_state.english != True else "Product - Checking account in foreign currency": [
-        "Facilite les transactions internationales, convertibilité rapide"
+    (
+        "Produit - Compte chèque en devises"
         if st.session_state.english != True
-        else "Facilitates international transactions, fast convertibility",
+        else "Product - Checking account in foreign currency"
+    ): [
+        (
+            "Facilite les transactions internationales, convertibilité rapide"
+            if st.session_state.english != True
+            else "Facilitates international transactions, fast convertibility"
+        ),
         Advantages_Compte_chèque_en_devises,
         Coût_estimatif_des_frais_Compte_chèque_en_devises,
     ],
-    "Produit - Compte sur carnet" if st.session_state.english != True else "Product - Savings account": [
-        "Rendement sur les dépôts, flexibilité de retrait"
+    (
+        "Produit - Compte sur carnet"
         if st.session_state.english != True
-        else "Earnings on deposits, withdrawal flexibility",
+        else "Product - Savings account"
+    ): [
+        (
+            "Rendement sur les dépôts, flexibilité de retrait"
+            if st.session_state.english != True
+            else "Earnings on deposits, withdrawal flexibility"
+        ),
         Advantages_Compte_sur_carnet,
         Coût_estimatif_des_frais_Compte_sur_carnet,
     ],
-    "Produit - Compte à terme" if st.session_state.english != True else "Product - Term deposit account": [
-        "Taux d’intérêt supérieur au compte épargne, sécurité"
+    (
+        "Produit - Compte à terme"
         if st.session_state.english != True
-        else "Higher interest rate than savings account, security",
+        else "Product - Term deposit account"
+    ): [
+        (
+            "Taux d’intérêt supérieur au compte épargne, sécurité"
+            if st.session_state.english != True
+            else "Higher interest rate than savings account, security"
+        ),
         Advantages_Compte_à_terme,
         Coût_estimatif_des_frais_Compte_à_terme,
     ],
-    "Produit - Carte basique" if st.session_state.english != True else "Product - Basic card": [
-        "Accessibilité, sécurité, paiements électroniques"
+    (
+        "Produit - Carte basique"
         if st.session_state.english != True
-        else "Accessibility, security, electronic payments",
+        else "Product - Basic card"
+    ): [
+        (
+            "Accessibilité, sécurité, paiements électroniques"
+            if st.session_state.english != True
+            else "Accessibility, security, electronic payments"
+        ),
         Advantages_Carte_basique,
         Coût_estimatif_des_frais_Carte_basique,
     ],
-    "Produit - Carte Visa" if st.session_state.english != True else "Product - Visa card": [
-        "Acceptée partout, sécurité, possibilité de crédit"
+    (
+        "Produit - Carte Visa"
         if st.session_state.english != True
-        else "Accepted everywhere, security, credit option",
+        else "Product - Visa card"
+    ): [
+        (
+            "Acceptée partout, sécurité, possibilité de crédit"
+            if st.session_state.english != True
+            else "Accepted everywhere, security, credit option"
+        ),
         Advantages_Carte_Visa,
         Coût_estimatif_des_frais_Carte_Visa,
     ],
-    "Produit - Carte Visa Premium" if st.session_state.english != True else "Product - Visa Premium card": [
-        "Assurance voyages, services de conciergerie, plafonds plus élevés"
+    (
+        "Produit - Carte Visa Premium"
         if st.session_state.english != True
-        else "Travel insurance, concierge services, higher limits",
+        else "Product - Visa Premium card"
+    ): [
+        (
+            "Assurance voyages, services de conciergerie, plafonds plus élevés"
+            if st.session_state.english != True
+            else "Travel insurance, concierge services, higher limits"
+        ),
         Advantages_Carte_Visa_Premium,
         Coût_estimatif_des_frais_Carte_Visa_Premium,
     ],
-    "Produit - Carte Visa Elite" if st.session_state.english != True else "Product - Visa Elite card": [
-        "Accès aux lounges, assurances complètes, service prioritaire"
+    (
+        "Produit - Carte Visa Elite"
         if st.session_state.english != True
-        else "Lounge access, full insurance, priority service",
+        else "Product - Visa Elite card"
+    ): [
+        (
+            "Accès aux lounges, assurances complètes, service prioritaire"
+            if st.session_state.english != True
+            else "Lounge access, full insurance, priority service"
+        ),
         Advantages_Carte_Visa_Elite,
         Coût_estimatif_des_frais_Carte_Visa_Elite,
     ],
-    "Produit - Carte Visa Infinite" if st.session_state.english != True else "Product - Visa Infinite card": [
-        "Concierge personnel, assurances premium, programmes luxe"
+    (
+        "Produit - Carte Visa Infinite"
         if st.session_state.english != True
-        else "Personal concierge, premium insurance, luxury programs",
+        else "Product - Visa Infinite card"
+    ): [
+        (
+            "Concierge personnel, assurances premium, programmes luxe"
+            if st.session_state.english != True
+            else "Personal concierge, premium insurance, luxury programs"
+        ),
         Advantages_Carte_Visa_Infinite,
         Coût_estimatif_des_frais_Carte_Visa_Infinite,
     ],
-    "Produit - Crédit Immo avec garantie hypothécaire" if st.session_state.english != True else "Product - Mortgage loan with real estate guarantee": [
-        "Taux généralement plus bas, sécurise le prêt pour la banque"
+    (
+        "Produit - Crédit Immo avec garantie hypothécaire"
         if st.session_state.english != True
-        else "Generally lower rate, secures the loan for the bank",
+        else "Product - Mortgage loan with real estate guarantee"
+    ): [
+        (
+            "Taux généralement plus bas, sécurise le prêt pour la banque"
+            if st.session_state.english != True
+            else "Generally lower rate, secures the loan for the bank"
+        ),
         Advantages_Crédit_Immo_avec_garantie_hypothécaire,
         Coût_estimatif_des_frais_Crédit_Immo_avec_garantie_hypothécaire,
     ],
-    "Produit - Crédit Immo avec garantie liquide" if st.session_state.english != True else "Product - Mortgage loan with cash guarantee": [
-        "Plus rapide à mettre en place, taux compétitif"
+    (
+        "Produit - Crédit Immo avec garantie liquide"
         if st.session_state.english != True
-        else "Faster to implement, competitive rate",
+        else "Product - Mortgage loan with cash guarantee"
+    ): [
+        (
+            "Plus rapide à mettre en place, taux compétitif"
+            if st.session_state.english != True
+            else "Faster to implement, competitive rate"
+        ),
         Advantages_Crédit_Immo_avec_garantie_liquide,
         Coût_estimatif_des_frais_Crédit_Immo_avec_garantie_liquide,
     ],
-    "Produit - Crédit Immo avec remboursement in fine" if st.session_state.english != True else "Product - Mortgage loan with bullet repayment": [
-        "Permet de libérer la trésorerie mensuelle, adapté à l’investissement locatif"
+    (
+        "Produit - Crédit Immo avec remboursement in fine"
         if st.session_state.english != True
-        else "Frees monthly cash flow, suitable for rental investment",
+        else "Product - Mortgage loan with bullet repayment"
+    ): [
+        (
+            "Permet de libérer la trésorerie mensuelle, adapté à l’investissement locatif"
+            if st.session_state.english != True
+            else "Frees monthly cash flow, suitable for rental investment"
+        ),
         Advantages_Crédit_Immo_avec_remboursement_in_fine,
         Coût_estimatif_des_frais_Crédit_Immo_avec_remboursement_in_fine,
     ],
-    "Produit - Crédit Immo subventionné" if st.session_state.english != True else "Product - Subsidized mortgage loan": [
-        "Taux avantageux, soutien public"
+    (
+        "Produit - Crédit Immo subventionné"
         if st.session_state.english != True
-        else "Advantageous rate, public support",
+        else "Product - Subsidized mortgage loan"
+    ): [
+        (
+            "Taux avantageux, soutien public"
+            if st.session_state.english != True
+            else "Advantageous rate, public support"
+        ),
         Advantages_Crédit_Immo_subventionné,
         Coût_estimatif_des_frais_Crédit_Immo_subventionné,
     ],
-    "Produit - Crédit à la consommation non affecté" if st.session_state.english != True else "Product - Unsecured consumer loan": [
-        "Rapidité, flexibilité, aucune obligation de destination"
+    (
+        "Produit - Crédit à la consommation non affecté"
         if st.session_state.english != True
-        else "Fast, flexible, no usage obligation",
+        else "Product - Unsecured consumer loan"
+    ): [
+        (
+            "Rapidité, flexibilité, aucune obligation de destination"
+            if st.session_state.english != True
+            else "Fast, flexible, no usage obligation"
+        ),
         Advantages_Crédit_à_la_consommation_non_affecté,
         Coût_estimatif_des_frais_Crédit_à_la_consommation_non_affecté,
     ],
-    "Produit - Crédit Auto" if st.session_state.english != True else "Product - Auto loan": [
-        "Taux compétitif, remboursement échelonné, assurance souvent incluse"
+    (
+        "Produit - Crédit Auto"
         if st.session_state.english != True
-        else "Competitive rate, installment repayment, insurance often included",
+        else "Product - Auto loan"
+    ): [
+        (
+            "Taux compétitif, remboursement échelonné, assurance souvent incluse"
+            if st.session_state.english != True
+            else "Competitive rate, installment repayment, insurance often included"
+        ),
         Advantages_Crédit_Auto,
         Coût_estimatif_des_frais_Crédit_Auto,
     ],
-    "Produit - Découvert" if st.session_state.english != True else "Product - Overdraft facility": [
-        "Flexibilité, immédiat, couvre les dépenses urgentes"
+    (
+        "Produit - Découvert"
         if st.session_state.english != True
-        else "Flexibility, immediate, covers urgent expenses",
+        else "Product - Overdraft facility"
+    ): [
+        (
+            "Flexibilité, immédiat, couvre les dépenses urgentes"
+            if st.session_state.english != True
+            else "Flexibility, immediate, covers urgent expenses"
+        ),
         Advantages_Découvert,
         Coût_estimatif_des_frais_Découvert,
     ],
-    "Produit - Assurance décès invalidité adossée à un financement" if st.session_state.english != True else "Product - Death and disability insurance linked to a loan": [
-        "Sécurité pour la famille et la banque"
+    (
+        "Produit - Assurance décès invalidité adossée à un financement"
         if st.session_state.english != True
-        else "Security for family and the bank",
+        else "Product - Death and disability insurance linked to a loan"
+    ): [
+        (
+            "Sécurité pour la famille et la banque"
+            if st.session_state.english != True
+            else "Security for family and the bank"
+        ),
         Advantages_Assurance_décès_invalidité_adossée_à_un_financement,
         Coût_estimatif_des_frais_Assurance_décès_invalidité_adossée_à_un_financement,
     ],
-    "Produit - Assurance décès toutes causes" if st.session_state.english != True else "Product - All-cause death insurance": [
-        "Sécurité pour la famille, couverture complète"
+    (
+        "Produit - Assurance décès toutes causes"
         if st.session_state.english != True
-        else "Family security, full coverage",
+        else "Product - All-cause death insurance"
+    ): [
+        (
+            "Sécurité pour la famille, couverture complète"
+            if st.session_state.english != True
+            else "Family security, full coverage"
+        ),
         Advantages_Assurance_décès_toutes_causes,
         Coût_estimatif_des_frais_Assurance_décès_toutes_causes,
     ],
-    "Produit - Multirisques bâtiment" if st.session_state.english != True else "Product - Multi-risk building insurance": [
-        "Couverture complète, tranquillité"
+    (
+        "Produit - Multirisques bâtiment"
         if st.session_state.english != True
-        else "Full coverage, peace of mind",
+        else "Product - Multi-risk building insurance"
+    ): [
+        (
+            "Couverture complète, tranquillité"
+            if st.session_state.english != True
+            else "Full coverage, peace of mind"
+        ),
         Advantages_Multirisques_bâtiment,
         Coût_estimatif_des_frais_Multirisques_bâtiment,
     ],
-    "Produit - Maladie complémentaire" if st.session_state.english != True else "Product - Supplementary health insurance": [
-        "Accès à plus de soins, remboursements supérieurs"
+    (
+        "Produit - Maladie complémentaire"
         if st.session_state.english != True
-        else "Access to more care, higher reimbursements",
+        else "Product - Supplementary health insurance"
+    ): [
+        (
+            "Accès à plus de soins, remboursements supérieurs"
+            if st.session_state.english != True
+            else "Access to more care, higher reimbursements"
+        ),
         Advantages_Maladie_complémentaire,
         Coût_estimatif_des_frais_Maladie_complémentaire,
     ],
-    "Produit - Retraite complémentaire" if st.session_state.english != True else "Product - Supplementary retirement plan": [
-        "Prévoit des revenus à la retraite, avantage fiscal"
+    (
+        "Produit - Retraite complémentaire"
         if st.session_state.english != True
-        else "Provides retirement income, tax advantage",
+        else "Product - Supplementary retirement plan"
+    ): [
+        (
+            "Prévoit des revenus à la retraite, avantage fiscal"
+            if st.session_state.english != True
+            else "Provides retirement income, tax advantage"
+        ),
         Advantages_Retraite_complémentaire,
         Coût_estimatif_des_frais_Retraite_complémentaire,
     ],
-    "Produit - Retraite complémentaire en UC" if st.session_state.english != True else "Product - Unit-linked supplementary retirement plan": [
-        "Rendement potentiel plus élevé, diversification"
+    (
+        "Produit - Retraite complémentaire en UC"
         if st.session_state.english != True
-        else "Potentially higher return, diversification",
+        else "Product - Unit-linked supplementary retirement plan"
+    ): [
+        (
+            "Rendement potentiel plus élevé, diversification"
+            if st.session_state.english != True
+            else "Potentially higher return, diversification"
+        ),
         Advantages_Retraite_complémentaire_en_UC,
         Coût_estimatif_des_frais_Retraite_complémentaire_en_UC,
     ],
-    "Produit - Épargne Éducation" if st.session_state.english != True else "Product - Education savings plan": [
-        "Avantages fiscaux, sécurité des fonds"
+    (
+        "Produit - Épargne Éducation"
         if st.session_state.english != True
-        else "Tax advantages, fund security",
+        else "Product - Education savings plan"
+    ): [
+        (
+            "Avantages fiscaux, sécurité des fonds"
+            if st.session_state.english != True
+            else "Tax advantages, fund security"
+        ),
         Advantages_Épargne_Éducation,
         Coût_estimatif_des_frais_Épargne_Éducation,
     ],
-    "Produit - Épargne Logement" if st.session_state.english != True else "Product - Housing savings plan": [
-        "Rendement garanti, prime de l’État possible"
+    (
+        "Produit - Épargne Logement"
         if st.session_state.english != True
-        else "Guaranteed return, possible state bonus",
+        else "Product - Housing savings plan"
+    ): [
+        (
+            "Rendement garanti, prime de l’État possible"
+            if st.session_state.english != True
+            else "Guaranteed return, possible state bonus"
+        ),
         Advantages_Épargne_Logement,
         Coût_estimatif_des_frais_Épargne_Logement,
     ],
-    "Produit - OPCVM monétaires" if st.session_state.english != True else "Product - Money market mutual fund (OPCVM)": [
-        "Sécurité, liquidité élevée, rendement stable"
+    (
+        "Produit - OPCVM monétaires"
         if st.session_state.english != True
-        else "Security, high liquidity, stable return",
+        else "Product - Money market mutual fund (OPCVM)"
+    ): [
+        (
+            "Sécurité, liquidité élevée, rendement stable"
+            if st.session_state.english != True
+            else "Security, high liquidity, stable return"
+        ),
         Advantages_OPCVM_monétaires,
         Coût_estimatif_des_frais_OPCVM_monétaires,
     ],
-    "Produit - OPCVM obligataires" if st.session_state.english != True else "Product - Bond mutual fund (OPCVM)": [
-        "Rendement supérieur au compte épargne, diversification"
+    (
+        "Produit - OPCVM obligataires"
         if st.session_state.english != True
-        else "Higher return than savings account, diversification",
+        else "Product - Bond mutual fund (OPCVM)"
+    ): [
+        (
+            "Rendement supérieur au compte épargne, diversification"
+            if st.session_state.english != True
+            else "Higher return than savings account, diversification"
+        ),
         Advantages_OPCVM_obligataires,
         Coût_estimatif_des_frais_OPCVM_obligataires,
     ],
-    "Produit - OPCVM diversifiés" if st.session_state.english != True else "Product - Diversified mutual fund (OPCVM)": [
-        "Rendement potentiellement plus élevé, risque modéré"
+    (
+        "Produit - OPCVM diversifiés"
         if st.session_state.english != True
-        else "Potentially higher return, moderate risk",
+        else "Product - Diversified mutual fund (OPCVM)"
+    ): [
+        (
+            "Rendement potentiellement plus élevé, risque modéré"
+            if st.session_state.english != True
+            else "Potentially higher return, moderate risk"
+        ),
         Advantages_OPCVM_diversifiés,
         Coût_estimatif_des_frais_OPCVM_diversifiés,
     ],
-    "Produit - OPCVM actions" if st.session_state.english != True else "Product - Equity mutual fund (OPCVM)": [
-        "Potentiel de rendement élevé, diversification internationale"
+    (
+        "Produit - OPCVM actions"
         if st.session_state.english != True
-        else "High return potential, international diversification",
+        else "Product - Equity mutual fund (OPCVM)"
+    ): [
+        (
+            "Potentiel de rendement élevé, diversification internationale"
+            if st.session_state.english != True
+            else "High return potential, international diversification"
+        ),
         Advantages_OPCVM_actions,
         Coût_estimatif_des_frais_OPCVM_actions,
     ],
-    "Produit - Pack bancaire basique" if st.session_state.english != True else "Product - Basic banking package": [
-        "Économie sur les frais combinés, simplicité"
+    (
+        "Produit - Pack bancaire basique"
         if st.session_state.english != True
-        else "Savings on combined fees, simplicity",
+        else "Product - Basic banking package"
+    ): [
+        (
+            "Économie sur les frais combinés, simplicité"
+            if st.session_state.english != True
+            else "Savings on combined fees, simplicity"
+        ),
         Advantages_Pack_bancaire_basique,
         Coût_estimatif_des_frais_Pack_bancaire_basique,
     ],
-    "Produit - Pack bancaire étoffé" if st.session_state.english != True else "Product - Enhanced banking package": [
-        "Services complets, réductions sur produits associés"
+    (
+        "Produit - Pack bancaire étoffé"
         if st.session_state.english != True
-        else "Full services, discounts on associated products",
+        else "Product - Enhanced banking package"
+    ): [
+        (
+            "Services complets, réductions sur produits associés"
+            if st.session_state.english != True
+            else "Full services, discounts on associated products"
+        ),
         Advantages_Pack_bancaire_étoffé,
         Coût_estimatif_des_frais_Pack_bancaire_étoffé,
     ],
 }
-
 
 
 # --- FONCTIONS UTILITAIRES ---
@@ -1235,12 +1603,30 @@ def change_client():
 def switch_page_home():
     st.session_state["switch_page_home"] = True
 
+def my_text():
+    user_input = st.session_state.chat_input
+    if user_input and user_input.text:
+        st.session_state.my_messages.append(user_input.text)
+    if user_input and user_input["files"]:
+        st.session_state.my_messages.append(
+            {"type": "image", "data": user_input["files"]}
+        )
+
+ai_msg = t(
+    "Bonjour 👋 Je suis votre assistant. Comment puis-je vous aider aujourd'hui ?",
+    "Hello 👋 I’m your assistant. How can I help you today?",
+)
+
+def clear_msg():
+    st.session_state.my_messages = []
 
 # --- INITIALISATION DES VARIABLES DE SESSION ---
 st.session_state.setdefault("switch_page_home", False)
 st.session_state.switch_page_client = False
 st.session_state.setdefault("produit_page", None)
 st.session_state.m_messages = []
+st.session_state.setdefault("my_messages",[])
+
 
 
 # --- NAVIGATION AUTOMATIQUE SI DÉCLENCHÉE ---
@@ -1339,7 +1725,6 @@ with st.sidebar:
         type="tertiary",
         key="btn6",
     )
-
 # --- CONTENU PRINCIPAL ---
 st.markdown(
     """
@@ -1863,7 +2248,7 @@ if st.session_state.aff_content == True:
                 with col11111:
                     st.write(total_income)
                 with col22222:
-                    st.write("DH" if st.session_state.english != True else "MAD")
+                    st.write("DH" if st.session_state.english != True else "€")
         with col2222:
             with st.container(border=True):
                 st.write(
@@ -1881,7 +2266,7 @@ if st.session_state.aff_content == True:
                 with col11111:
                     st.write(total_expenses)
                 with col22222:
-                    st.write("DH" if st.session_state.english != True else "MAD")
+                    st.write("DH" if st.session_state.english != True else "€")
         with col3333:
             with st.container(border=True):
                 st.write(
@@ -1899,7 +2284,7 @@ if st.session_state.aff_content == True:
                 with col11111:
                     st.write(current_net_worth)
                 with col22222:
-                    st.write("DH" if st.session_state.english != True else "MAD")
+                    st.write("DH" if st.session_state.english != True else "€")
         with st.container(border=True):
             text_4 = (
                 "Revenus vs Dépenses mensuels"
@@ -1950,9 +2335,7 @@ if st.session_state.aff_content == True:
                 ),
                 xaxis_title="Mois" if st.session_state.english != True else "Months",
                 yaxis_title=(
-                    "Montant (DH)"
-                    if st.session_state.english != True
-                    else "Amount (MAD)"
+                    "Montant (DH)" if st.session_state.english != True else "Amount (€)"
                 ),
                 plot_bgcolor="white",
                 font=dict(size=14),
@@ -1999,9 +2382,9 @@ if st.session_state.aff_content == True:
 
     with st.container(border=True, key="cont_clients"):
         text_5 = (
-            "Recommandations basées sur les clients similaires"
+            "Ce que notre IA vous propose"
             if st.session_state.english != True
-            else "Recommendations based on similar clients"
+            else "What our AI offers you"
         )
         st.markdown(
             f"""
@@ -3149,9 +3532,9 @@ if st.session_state.aff_content == True:
                             i = i + 1
     with st.container(border=True):
         text_7 = (
-            "Recommandations basées sur les experts"
+            "Recommandations hybrides (avis d’experts consolidés par l’IA)"
             if st.session_state.english != True
-            else "Recommendations based on experts"
+            else "Hybrid recommendations (expert opinions consolidated by AI)"
         )
         st.markdown(
             f"""
@@ -4253,9 +4636,9 @@ if st.session_state.aff_content == True:
 
     with st.container(border=True):
         text_8 = (
-            "Recommandations basées sur le marché bancaire"
+            "Contenus personnalisés selon les dynamiques du marché financier, analysées par IA"
             if st.session_state.english != True
-            else "Recommendations based on the banking market"
+            else "Personalized content based on financial market dynamics analyzed by AI"
         )
         st.markdown(
             f"""
@@ -5400,3 +5783,44 @@ if st.session_state.aff_content == True:
                                     k = k + 1
                                 j = j + 1
                             i = i + 1
+
+with st.popover(
+    "Ask Ai" if st.session_state.english == True else "Demander à l’IA",
+    icon=":material/smart_toy:",
+    help= t("Votre guide pour souscrire à ce produit","Your guide to subscribing to this product")
+):
+    st.write(
+        t(
+            "Votre guide pour souscrire à ce produit",
+            "Your guide to subscribing to this product",
+        )
+    )
+    ai_message = (
+        st.container(border=True, height="content")
+        if st.session_state["my_messages"] == []
+        else st.container(border=True, height=250)
+    )
+    with ai_message:
+        st.chat_message("assistant").write(ai_msg)
+        for msg in st.session_state.my_messages:
+            if isinstance(msg, str):
+                st.chat_message("user").write(msg)
+                st.chat_message("assistant").write(msg)
+            if isinstance(msg, dict) and msg.get("type") == "image":
+                with st.chat_message("user"):
+                    st.image(
+                        msg["data"],
+                        width="content",
+                    )
+                with st.chat_message("assistant"):
+                    st.image(
+                        msg["data"],
+                        width="content",
+                    )
+    st.chat_input(
+        t("Entrez votre message...", "Enter your message..."),
+        accept_file=True,
+        file_type=["jpg", "jpeg", "png"],
+        key="chat_input",
+        on_submit=my_text,
+    )

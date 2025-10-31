@@ -129,3 +129,41 @@
     border: none;
     box-shadow:0 8px 16px 0 rgba(0,0,0,0.6)
 }
+.st-key-btn_ask button {
+    border: 1px solid #00BFFF;
+    box-shadow:0 8px 16px 0 rgba(0,0,0,0.6);
+    border-radius: 10px;
+    width: 150px;
+    margin-left: 53px;
+    margin-top: -30px ;
+}
+.st-key-btn_ask button p{
+    color: #00BFFF;
+    font-weight: bold;
+    font-size: 12px !important;
+}
+.st-key-btn_ask_cl button {
+    border: 1px solid #00BFFF;
+    box-shadow:0 8px 16px 0 rgba(0,0,0,0.6);
+    border-radius: 10px;
+    width: 100px;
+    margin-left: 35px;
+    margin-top: -30px ;
+}
+.st-key-btn_ask_cl button p{
+    color: #00BFFF;
+    font-weight: bold;
+    font-size: 12px !important;
+}
+.stPopover {
+    position: fixed;
+    bottom: 10px;
+    right: 20px;
+    width: 200px;
+    z-index: 9999; /* Ensure it stays on top of other elements */
+    border-radius: 10px;
+    color: #00BFFF;
+    border:1px solid #00BFFF;
+}
+
+         

@@ -32,9 +32,10 @@ results = t(
     "revenu mensuel stable, croissance financière à long terme",
     "stable monthly income, long-term financial growth",
 )
+Euro_rate = 0.093
 advantages = st.session_state.Advantage
 num_TAE = 5.2
-num_Investissement = 100000
+num_Investissement = 100000 if st.session_state.english != True else 100000 * Euro_rate
 niv_risque = t("faible", "Low")
 frais = t("Faible/Aucun", "Low/None")
 ai_msg = t(
@@ -89,6 +90,10 @@ def switch_page_client():
     st.session_state.switch_page_client = True
 
 
+def clear_msg():
+    st.session_state.my_messages = []
+
+
 # --- INITIALISATION DES VARIABLES DE SESSION ---
 st.session_state.switch_page_produit = False
 if "m_messages" not in st.session_state:
@@ -103,6 +108,7 @@ if st.session_state["switch_page_home"] == True:
     st.switch_page("pages/page_d'accueil.py")
 if st.session_state["switch_page_client"] == True:
     st.switch_page("pages/clients.py")
+st.session_state.setdefault("my_messages", [])
 
 
 # --- NAVIGATION AUTOMATIQUE SI DÉCLENCHÉE ---
@@ -236,7 +242,7 @@ with st.container(border=True):
                     unsafe_allow_html=True,
                 )
             with st.container(border=True, height="stretch"):
-                text_part12 = t("Investissement minimum (DH)","Minimum investment (MAD)")
+                text_part12 = t("Investissement minimum (DH)", "Minimum investment (€)")
                 st.markdown(
                     f"""
                     <p style='font-family:Arial; font-size:12px;'>
@@ -295,9 +301,18 @@ with st.container(border=True):
             "Pourquoi ce produit est fait pour vous :",
             "Why this product is right for you :",
         )
-        text_part13 = t("En se basant sur votre profil affichant :","Based on your profile showing :")
-        text_part14 = t("est une excellente recommandation. Il correspond à vos objectifs en offrant :","is an excellent recommendation. It aligns with your goals by offering :")
-        text_part15 = t("tout en vous offrant la flexibilité dont vous avez besoin.","while providing you with the flexibility you need.")
+        text_part13 = t(
+            "En se basant sur votre profil affichant :",
+            "Based on your profile showing :",
+        )
+        text_part14 = t(
+            "est une excellente recommandation. Il correspond à vos objectifs en offrant :",
+            "is an excellent recommendation. It aligns with your goals by offering :",
+        )
+        text_part15 = t(
+            "tout en vous offrant la flexibilité dont vous avez besoin.",
+            "while providing you with the flexibility you need.",
+        )
         st.markdown(
             f"""
                     <p style='font-family:Arial; font-size:14px; font-weight:bold;'>
@@ -319,7 +334,11 @@ with st.container(border=True):
             """,
             unsafe_allow_html=True,
         )
-        st.button(t("Voir votre profil complet","View your full profile"), type="secondary", key="btn_voir_p")
+        st.button(
+            t("Voir votre profil complet", "View your full profile"),
+            type="secondary",
+            key="btn_voir_p",
+        )
     st.markdown(
         """
             <hr style="margin-top:5px; margin-bottom:5px;">
@@ -327,14 +346,14 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     st.button(
-        t("Avantages","Benefits"),
+        t("Avantages", "Benefits"),
         icon=":material/workspace_premium:",
         type="tertiary",
         on_click=toggle_Avantages,
     )
     if st.session_state.show_Avantages:
         i = 0
-        for ite in Advantage_list:
+        for ite, valeur in Advantage_list.items():
             if i % 2 == 0:
                 cols = st.columns([1, 1])  # crée deux colonnes
                 col_dict = {f"col{i}": cols[0], f"col{i+1}": cols[1]}
@@ -343,16 +362,17 @@ with st.container(border=True):
                     f"""
                         <p style='font-family:Arial; font-size:12px;margin-left:50px;font-weight:bold;'>
                                     <span style="
-                display:inline-block;
-                width:7px;
-                height:7px;
-                background-color:blue;
-                margin-right:8px;
-                vertical-align:middle;
-            "></span>
-                            {ite}<br>
-            <span style='color:gray; font-weight:bold;margin-left: 20px'>Lorem Ipsum is simply dummy text of the printing and</span><br>
-            <span style='color:gray; font-weight:bold;margin-left: 20px'>typesetting industry.</span>
+                                    display:inline-block;
+                                    width:7px;
+                                    height:7px;
+                                    background-color:blue;
+                                    margin-right:8px;
+                                    vertical-align:middle;
+                                "></span>
+                            {ite}
+                        </p>
+                        <p style='font-family:Arial; font-size:12px;margin-left:69px;font-weight:bold;color:gray;margin-top:-15px;'>
+                            {valeur}
                         </p>
                         """,
                     unsafe_allow_html=True,
@@ -366,7 +386,7 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     st.button(
-        t("Frais & coûts","Fees & Costs"),
+        t("Frais & coûts", "Fees & Costs"),
         icon=":material/point_of_sale:",
         type="tertiary",
         on_click=toggle_Frais_and_coûts,
@@ -411,7 +431,7 @@ with st.container(border=True):
         unsafe_allow_html=True,
     )
     Éligibilité = st.button(
-        t("Éligibilité","Eligibility"),
+        t("Éligibilité", "Eligibility"),
         icon=":material/contract:",
         type="tertiary",
         on_click=toggle_eligibilite,
@@ -420,9 +440,9 @@ with st.container(border=True):
         with st.container():
             col13, col23 = st.columns([1, 1])
             with col13:
-                text_part8 = t("Citoyen marocain","Moroccan citizen")
-                text_part9 = t("Compte bancaire valide","Valid bank account")
-                text_part10 = t("Âge 18 +","Age 18 +")
+                text_part8 = t("Citoyen marocain", "Moroccan citizen")
+                text_part9 = t("Compte bancaire valide", "Valid bank account")
+                text_part10 = t("Âge 18 +", "Age 18 +")
                 st.markdown(
                     f"""
                         <p style='font-family:Arial; font-size:12px;margin-left:50px;font-weight:bold;'>
@@ -473,40 +493,28 @@ with st.container(border=True):
                     unsafe_allow_html=True,
                 )
 
-with st.container(border=True):
-    text_part11 = t("Assistant de chat","Chat assistant")
-    st.markdown(
-        f"""
-                    <p style='font-family:Arial; font-size:24px; font-weight:bold;'>
-                        {text_part11}
-                    </p>
-                    """,
-        unsafe_allow_html=True,
+with st.popover(
+    "Ask Ai" if st.session_state.english == True else "Demander à l’IA",
+    icon=":material/smart_toy:",
+    help=t(
+        "Votre guide pour souscrire à ce produit",
+        "Your guide to subscribing to this product",
+    ),
+):
+    st.write(
+        t(
+            "Votre guide pour souscrire à ce produit",
+            "Your guide to subscribing to this product",
+        )
     )
-    st.write(t("Votre guide pour souscrire à ce produit","Your guide to subscribing to this product"))
-    ai_message = st.container(border=True)
+    ai_message = (
+        st.container(border=True, height="content")
+        if st.session_state["my_messages"] == []
+        else st.container(border=True, height=250)
+    )
     with ai_message:
-        #            st.markdown(
-        #                f"""
-        #                <div style="background-color:lightgray;width:350px;border-radius:20px;padding-left:20px;padding-top:10px;padding-bottom:1px;margin-bottom:10px;text-align : justify;padding-right:20px">
-        #                    <p style='font-family:Arial; font-size:12px;'>
-        #                    </p>
-        #               </div>
-        #                    """,
-        #                unsafe_allow_html=True,
-        #            )
         st.chat_message("assistant").write(ai_msg)
-        for msg in st.session_state.m_messages:
-            #                    st.markdown(
-            #                        f"""
-            #                        <div style="background-color:lightblue;width:350px;border-radius:20px;padding-left:20px;padding-top:10px;padding-bottom:1px;margin-bottom:10px;text-align : justify;padding-right:20px;margin-top:15px">
-            #                            <p style='font-family:Arial; font-size:12px;'>
-            #                            {msg}
-            #                            </p>
-            #                        </div>
-            #                            """,
-            #                        unsafe_allow_html=True,
-            #                    )
+        for msg in st.session_state.my_messages:
             if isinstance(msg, str):
                 st.chat_message("user").write(msg)
                 st.chat_message("assistant").write(msg)
@@ -521,11 +529,10 @@ with st.container(border=True):
                         msg["data"],
                         width="content",
                     )
-    with st.container(border=True):
-        st.chat_input(
-            t("Entrez votre message...","Enter your message..."),
-            accept_file=True,
-            file_type=["jpg", "jpeg", "png"],
-            key="chat_input",
-            on_submit=my_text,
-        )
+    st.chat_input(
+        t("Entrez votre message...", "Enter your message..."),
+        accept_file=True,
+        file_type=["jpg", "jpeg", "png"],
+        key="chat_input",
+        on_submit=my_text,
+    )

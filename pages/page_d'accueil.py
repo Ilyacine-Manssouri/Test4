@@ -4,7 +4,7 @@ import pathlib
 import os
 
 # --- LANGUE PAR DÉFAUT ---
-st.session_state.setdefault("english", False)
+st.session_state.setdefault("english", True)
 
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(
@@ -114,6 +114,11 @@ def go_to_clients():
         )
 
 
+def t(fr, en):
+    """Renvoie fr ou en selon la langue choisie"""
+    return en if st.session_state.english else fr
+
+
 def switch_page():
     """Déclenché automatiquement lors d’un changement de champ texte."""
     user_input = st.session_state.user_input.strip()
@@ -144,6 +149,25 @@ def switch_lang_en():
     st.session_state.english = not st.session_state.english
 
 
+def my_text():
+    user_input = st.session_state.chat_input
+    if user_input and user_input.text:
+        st.session_state.my_messages.append(user_input.text)
+    if user_input and user_input["files"]:
+        st.session_state.my_messages.append(
+            {"type": "image", "data": user_input["files"]}
+        )
+
+
+def clear_msg():
+    st.session_state.my_messages = []
+
+
+ai_msg = t(
+    "Bonjour 👋 Je suis votre assistant. Comment puis-je vous aider aujourd'hui ?",
+    "Hello 👋 I’m your assistant. How can I help you today?",
+)
+
 # --- INITIALISATION DES VARIABLES DE SESSION ---
 st.session_state["switch_page_home"] = False
 st.session_state.setdefault("user_input", "")
@@ -153,6 +177,7 @@ st.session_state.setdefault("switch_page_client", False)
 st.session_state.setdefault("last_uploaded_file", "")
 st.session_state.setdefault("process_done", None)
 st.session_state.m_messages = []
+st.session_state.setdefault("my_messages", [])
 
 
 # --- NAVIGATION AUTOMATIQUE SI DÉCLENCHÉE ---
@@ -198,6 +223,17 @@ st.sidebar.markdown(
 
 
 # --- CONTENU PRINCIPAL ---
+st.markdown(
+    """
+        <style>
+        section[data-testid="stSidebar"] {
+            width: 300px !important;  # Set the desired fixed width
+        }
+        </style>
+        """,
+    unsafe_allow_html=True,
+)
+
 col11, col22 = st.columns([10, 1])
 with col11:
     st.title("📂 Bienvenue !" if st.session_state.english != True else "📂 Welcome!")
@@ -243,7 +279,7 @@ if not st.session_state.english:
         visibility: hidden !important;
     }
     div[data-testid="stFileUploader"] div[data-testid="stFileUploaderDropzoneInstructions"] .st-emotion-cache-kt79cc > span:nth-child(2)::after {
-        content: "Limite de 200 Mo par fichier • CSV, JSON, XLSX, XLS";
+        content: "fichier • CSV, JSON, XLSX, XLS";
         visibility: visible !important;
         display: flex;
         justify-content: flex-start;
@@ -265,6 +301,28 @@ if not st.session_state.english:
     </style>
     """
     st.markdown(custom_css, unsafe_allow_html=True)
+else:
+    custom_css = """
+    <style>
+    div[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] {
+        margin-top: -16px !important; /* tweak this value */
+    }
+    /* Texte de limite : "Limit 200MB per file..." */
+    div[data-testid="stFileUploaderDropzoneInstructions"] > div > span:last-child {
+        visibility: hidden !important;
+    }
+    div[data-testid="stFileUploader"] div[data-testid="stFileUploaderDropzoneInstructions"] .st-emotion-cache-kt79cc > span:nth-child(2)::after {
+        content: "file • CSV, JSON, XLSX, XLS";
+        visibility: visible !important;
+        display: flex;
+        justify-content: flex-start;
+        font-size: 0.85rem;
+        margin-top: -22px;
+    }
+    </style>
+    """
+    st.markdown(custom_css, unsafe_allow_html=True)
+
 
 uploaded_file = st.file_uploader(
     (
@@ -303,11 +361,10 @@ if uploaded_file:
 
 if st.session_state.data_frame is None:
     st.info(
-        "💡 Aucun fichier chargé. Veuillez en importer un ci-dessus pour commencer."
+        "💡 &nbsp;Aucun fichier chargé. Veuillez en importer un ci-dessus pour commencer."
         if st.session_state.english != True
-        else "💡 No file loaded. Please upload one above to get started."
+        else "💡 &nbsp;No file loaded. Please upload one above to get started."
     )
-
 
 # --- AFFICHAGE DU DATAFRAME SI DÉJÀ CHARGÉ ---
 if st.session_state.data_frame is not None:
@@ -341,3 +398,43 @@ if st.session_state.data_frame is not None:
     if "error_msg" in st.session_state and st.session_state.error_msg:
         error_placeholder.error(st.session_state.error_msg)
         st.session_state.error_msg = ""  # reset après affichage
+
+with st.popover(
+    "Ask Ai" if st.session_state.english == True else "Demander à l’IA",
+    icon=":material/smart_toy:",
+):
+    st.write(
+        t(
+            "Votre guide pour souscrire à ce produit",
+            "Your guide to subscribing to this product",
+        )
+    )
+    ai_message = (
+        st.container(border=True, height="content")
+        if st.session_state["my_messages"] == []
+        else st.container(border=True, height=250)
+    )
+    with ai_message:
+        st.chat_message("assistant").write(ai_msg)
+        for msg in st.session_state.my_messages:
+            if isinstance(msg, str):
+                st.chat_message("user").write(msg)
+                st.chat_message("assistant").write(msg)
+            if isinstance(msg, dict) and msg.get("type") == "image":
+                with st.chat_message("user"):
+                    st.image(
+                        msg["data"],
+                        width="content",
+                    )
+                with st.chat_message("assistant"):
+                    st.image(
+                        msg["data"],
+                        width="content",
+                    )
+    st.chat_input(
+        t("Entrez votre message...", "Enter your message..."),
+        accept_file=True,
+        file_type=["jpg", "jpeg", "png"],
+        key="chat_input",
+        on_submit=my_text,
+    )
